@@ -1,0 +1,15 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+SECURITY.md
+lib/LaTeX/Replicase.pm
+t/00-pod.t
+t/01-replication.t
+t/02-tex_escape.t
+t/10-pod-coverage.t
+t/11-code_coverage.t
+t/12-kwalitee.t
+t/13-critic.t
+t/template_good.tex
+t/template_test.tex
