@@ -62,7 +62,8 @@ jobs:
 
       - name: Regular Tests
         run: |
-            perl Makefile.PL
-            make
-            make test
+            prove -lv t
+#            perl Makefile.PL
+#            make
+#            make test
 #            RELEASE_TESTING=1 make test
