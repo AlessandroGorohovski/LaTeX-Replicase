@@ -1,0 +1,54 @@
+# This is a basic workflow to help you get started with Actions
+
+name: windows
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  perl:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        perl-version:
+          - '5.30'
+          # - '5.28'
+          # - '5.26'
+          # - '5.24'
+          # - '5.22'
+          # - '5.20'
+          # - '5.18'
+          # - '5.16'
+          - '5.14'
+    steps:
+      # Извлекает ваш репозиторий в $GITHUB_WORKSPACE, чтобы ваше задание могло получить к нему доступ
+      - uses: actions/checkout@v4
+
+      # Runs a single command using the runners shell
+      - name: Setup perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl-version }}
+          distribution: strawberry
+      - name: Set git to use LF
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - name: perl -V
+        run: perl -V
+      - name: Ensure we have a working toolchain
+        run: cpanm ExtUtils::Manifest App::cpanminus
+      - name: Install Dependencies
+        run: cpanm -n --installdeps .
+      - name: Run Tests
+        run: cpanm --test-only -v .
