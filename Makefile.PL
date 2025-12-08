@@ -15,7 +15,7 @@ WriteMakefile(
       'Test::More::UTF8'   => '0.05',
       'Test::Pod'          => '1.22',
       'Test::Exception'    => '0.43',
-      'File::Basename'     => '2.86',
+      'File::Basename'     => '2.00',
       'File::Path'         => '2.18',
       'File::Compare'      => '1.00',
       'Carp'               => '0',
