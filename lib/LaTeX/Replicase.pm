@@ -23,7 +23,7 @@ our %EXPORT_TAGS = ('all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( );
 
-our $VERSION = '0.350';
+our $VERSION = '0.370';
 our $DEBUG; $DEBUG = 0 unless defined $DEBUG;
 our @logs;
 our $nlo = 1; # Number Line Output, start of 1
@@ -76,7 +76,7 @@ push @logs, "--> Check '$ifile' file" if $DEBUG;
 
 	# global data of TeX file
 	unless( $info 
-		and (( ref( $info ) eq 'HASH' and %$info ) or (ref( $info ) eq 'ARRAY' and @$info ))
+		and (( ref $info eq 'HASH' and %$info ) or (ref $info eq 'ARRAY' and @$info ))
 	) {
 		$_= "!!! ERROR#2: EMPTY or WRONG data!";
 		$op{silent} or carp $_;
@@ -212,8 +212,8 @@ push @logs, "--> Open '$ofile'" if $DEBUG;
 				}
 
 			}
-			elsif( (ref($vardata) eq 'HASH' and ( ref( $vardata->{ $key } ) eq 'HASH' or ref( $vardata->{ $key } ) eq 'ARRAY'))
-				or (ref($vardata) eq 'ARRAY' and ( ref( $vardata->[ $key ] ) eq 'HASH' or ref( $vardata->[ $key ] ) eq 'ARRAY'))
+			elsif( (ref $vardata eq 'HASH' and ( ref $vardata->{ $key } eq 'HASH' or ref $vardata->{ $key } eq 'ARRAY'))
+				or (ref $vardata eq 'ARRAY' and ( ref $vardata->[ $key ] eq 'HASH' or ref $vardata->[ $key ] eq 'ARRAY'))
 			) {
 				# Index of column in target table
 				my $j = (@columns && exists( $columns[-1]{ki} )) ?
@@ -229,12 +229,30 @@ push @logs, "--> Open '$ofile'" if $DEBUG;
 					my $Np = $2; # NO \par
 					my $paste = $3; # on right
 
-					if( $chkVAR == 0b0001) { # V-variable is in ARRAY.ARRAY of VAR-structure
-						if( $ki =~/^[\+\-]*\d+$/ ) {
-							$columns[$j]{ki} = $ki+0; # save variable index in the j-th column
+					if( $chkVAR == 0b0001) { # V-variable is in {HASH|ARRAY}.ARRAY of VAR-structure
+
+						if( $ki eq '@') {
+							$ki = '0-'; # ALL elements
+							$columns[$j]{ki} = $ki; # starting index (unnamed meaning)
 						}
+						elsif( $ki =~/^\-*(\d+)$/ && ($1 < @$vk or ($ki < 0 && $1 == @$vk)) ) {
+							# specific indices, e.g.: 0 or 3 or -1
+							$columns[$j]{ki} = $ki;
+						}
+						elsif( $ki =~/^[\d,\-]+$/) {
+						# mixed indexes, e.g.: 1-3,6-7-9,-,4,-5,0,7- or 3- (i.e. 3..arr_end) or 0-5 (0..5) or -1- (-1,-2,..arr_start)
+							for( $ki ) {
+								s/\-+/-/g;
+								s/,+/,/g;
+							}
+							$columns[$j]{ki} = $ki;
+						}
+						else {
+push @logs, "~~> l.$. WARNING#8: ARRAY index is not numeric in %%%V:". $ki if $DEBUG or ! $op{ignore};
+						}
+
 					}
-					elsif( $chkVAR == 0b0010) { # V-variable is in ARRAY.HASH of VAR-structure
+					elsif( $chkVAR == 0b0010) { # V-variable is in {HASH|ARRAY}.HASH of VAR-structure
 
 						for my $d ( @$vk ) {
 							if( exists $d->{$ki} ) {
@@ -263,15 +281,15 @@ push @logs, "--> Open '$ofile'" if $DEBUG;
 						}
 
 					}
-					elsif( ref( $vk ) eq 'HASH'
-							and ( (ref( \$vk->{$ki} ) eq 'SCALAR' and defined( $vk->{$ki} ) )
-								or (ref( \$vk->{$ki} ) eq 'REF'
-									and ref($vk->{$ki}) eq 'SCALAR'
+					elsif( ref $vk eq 'HASH'
+							and ( (ref \$vk->{$ki} eq 'SCALAR' and defined( $vk->{$ki} ) )
+								or (ref \$vk->{$ki} eq 'REF'
+									and ref $vk->{$ki} eq 'SCALAR'
 									and defined( ${ $vk->{$ki} } )
 								)
 								or ( $ki eq '@'
 									and exists($vk->{$ki})
-									and ref($vk->{$ki}) eq 'ARRAY'
+									and ref $vk->{$ki} eq 'ARRAY'
 								)
 							)
 					) {
@@ -307,7 +325,6 @@ push @logs, "--> Open '$ofile'" if $DEBUG;
 
 				next;
 			}
-
 			else {
 				next;
 			}
@@ -355,10 +372,10 @@ push @logs, "--> Open '$ofile'" if $DEBUG;
 				$vardata = $vd;
 				length( $sk ) or next;
 
-				if( $sk =~/^\d+$/ && ref($vd) eq 'ARRAY' and defined( $vd->[$sk] )) {
+				if( $sk =~/^\d+$/ && ref $vd eq 'ARRAY' and defined( $vd->[$sk] )) {
 					last if &_data_redef( $sk, $vd->[$sk], \$k, \$vd, \$x );
 				}
-				elsif( ref($vd) eq 'HASH' and exists( $vd->{$sk} )) {
+				elsif( ref $vd eq 'HASH' and exists( $vd->{$sk} )) {
 					last if &_data_redef( $sk, $vd->{$sk}, \$k, \$vd, \$x );
 				}
 				else {
@@ -388,7 +405,7 @@ push @logs, "--> l.$. Found %%%VAR:". $k if $DEBUG;
 				(ref $vardata eq 'ARRAY' ? $vardata->[$k] : undef);
 
 			unless( $vk ) {
-push @logs, "--> l.$. NOT defined key in %%%VAR:". $k if $DEBUG && $op{def};
+push @logs, "~~> l.$. NOT defined key in %%%VAR:". $k if $DEBUG && $op{def};
 				next;
 			}
 
@@ -420,10 +437,10 @@ push @logs, "--> l.$. NOT defined key in %%%VAR:". $k if $DEBUG && $op{def};
 				length( $sk ) or next;
 
 				my $d;
-				if( $sk =~/^\d+$/ && ref($data) eq 'ARRAY' && defined( $data->[$sk] )) {
+				if( $sk =~/^\d+$/ && ref $data eq 'ARRAY' && defined( $data->[$sk] )) {
 					$d = $data->[$sk];
 				}
-				elsif( ref($data) eq 'HASH' && exists( $data->{$sk} )) {
+				elsif( ref $data eq 'HASH' && exists( $data->{$sk} )) {
 					$d = $data->{$sk};
 				}
 				else {
@@ -437,16 +454,16 @@ push @logs, "~~> l.$. WARNING#3: unknown sub-key '$sk' in %%%V:". $k if $DEBUG o
 				}
 
 				# Check type
-				if( (ref($d) eq 'ARRAY' or ref($d) eq 'HASH') ) {
+				if( (ref $d eq 'ARRAY' or ref $d eq 'HASH') ) {
 					$data = $d; #  sub-key (path) found: redefined
 					next;
 				}
 
 				my $v;
-				if( ref(\$d) eq 'SCALAR') {
+				if( ref \$d eq 'SCALAR') {
 					$v = $d;
 				}
-				elsif( ref(\$d) eq 'REF' and ref($d) eq 'SCALAR') { # REF->SCALAR
+				elsif( ref \$d eq 'REF' and ref $d eq 'SCALAR') { # REF->SCALAR
 					$v = $$d;
 				}
 				else {
@@ -502,12 +519,12 @@ sub _set_column {
 sub _data_redef {
 	my( $sk, $d, $k, $data, $x ) = @_;
 
-	if( ref($d) eq 'ARRAY' or ref($d) eq 'HASH') {
+	if( ref $d eq 'ARRAY' or ref $d eq 'HASH') {
 		$$data = $d; # redefined for %%%VAR:
 		return 0;
 	}
 
-	if( ref(\$d) eq 'SCALAR' or (ref(\$d) eq 'REF' and ref($d) eq 'SCALAR')) {
+	if( ref \$d eq 'SCALAR' or (ref \$d eq 'REF' and ref $d eq 'SCALAR')) {
 		$$k = $sk;
 	}
 	else {
@@ -523,19 +540,28 @@ sub _chk_var {
 	our @logs;
 	our $nlo;
 
-	if( ref( $vk ) eq 'ARRAY') {
+	if( ref $vk eq 'ARRAY') {
+
+		unless( @{ $vk } ) {
+push @logs, "~~> l.$. WARNING#7: empty ARRAY of %%%VAR:". $k if $DEBUG or ! $op->{ignore};
+
+			print { $fh } $$z;
+			++$nlo;
+			return 1;
+		}
+
 	# Check ARRAY.{ARRAY|HASH|SCALAR[.REF]}
 		for my $d ( @{ $vk } ) {
-			if(ref($d) eq 'ARRAY'){
+			if(ref $d eq 'ARRAY'){
 				$$chkVAR |= 0b00001;
 			}
-			elsif(ref($d) eq 'HASH') {
+			elsif(ref $d eq 'HASH') {
 				$$chkVAR |= 0b00010;
 			}
-			elsif(ref(\$d) eq 'SCALAR') {
+			elsif(ref \$d eq 'SCALAR') {
 				$$chkVAR |= 0b00100;
 			}
-			elsif(ref(\$d) eq 'REF' and ref($d) eq 'SCALAR') {
+			elsif(ref \$d eq 'REF' and ref $d eq 'SCALAR') {
 				$$chkVAR |= 0b01000;
 			}
 			else {
@@ -551,7 +577,7 @@ push @logs, "~~> l.$. WARNING#6: mixed types (ARRAY with HASH with SCALAR or oth
 			return 1;
 		}
 	}
-	elsif( ref( \$vk ) eq 'SCALAR') {
+	elsif( ref \$vk eq 'SCALAR') {
 		$columns->[0]{ki} = $k;
 		&_set_column( $Np, $$paste, $columns->[0] );
 	}
@@ -622,6 +648,15 @@ push @logs, "-->\tl.$.>$nlo Insert $ht: ". $_ if $DEBUG;
 sub _hvt_print {
 	my( $fh, $ki, $val, $el, $op, $border ) = @_;
 
+	our $DEBUG;
+	our @logs;
+	our $nlo;
+
+	if( length($ki) and ! defined $val ) {
+		push @logs, "~~> l.$.".' NOT defined %%%V:'. $ki if $DEBUG && $op->{def};
+		return;
+	}
+
 	# output head of variable
 	&_ht_print( $fh, $el, 'head', $border );
 
@@ -633,8 +668,37 @@ sub _hvt_print {
 }
 
 
+sub _s_a_prn {
+	my( $fh, $i, $values, $el, $op, $border, $col ) = @_;
+
+	my $val = $values->[$i];
+	if( ref \$val eq 'REF' and ref $val eq 'SCALAR') {
+		$val = $$val;
+	}
+
+	if( ref \$val eq 'SCALAR') {
+		&_hvt_print( $fh, $i, $val, $el, $op, $$border );
+		++$$col;
+		$$border = 0;
+	}
+	elsif( ref $val eq 'ARRAY') { # [...].ARRAY.ARRAY
+		for( @$val ) {
+			next if ref \$_ ne 'SCALAR';
+
+			&_hvt_print( $fh, $i, $_, $el, $op, $$border );
+			++$$col;
+			$$border = 0;
+		}
+	}
+
+}
+
+
 sub _mixed_indices {
-	my( $fh, $type, $ki, $nd, $values, $el, $op, $border ) = @_;
+	my( $fh, $ki, $values, $el, $op, $border ) = @_;
+
+	my $nd = @$values;
+	my $col = 0;
 
 	for my $ii ( split ',', $ki ) { # e.g. -1-,1-3,6-7-9,-,4,-5,0,7-
 		next if $ii eq '-';
@@ -647,17 +711,16 @@ sub _mixed_indices {
 			($s, $e) = ($e, $s) if $e > $s;
 
 			for( my $i = $s; $i >= $e; --$i ) {
-				&_hvt_print( $fh, $i, ( $type eq 'SCALAR' ? $values->[$i] : ${ $values->[$i] } ), $el, $op, $border );
-				$border = 0;
+				&_s_a_prn( $fh, $i, $values, $el, $op, \$border, \$col );
 			}
 			next;
 		}
 
 		if( $ii =~/^\-[0-9]+$/ ) { # -5
 			my $i = $ii+0;
+
 			if( abs($i) <= $nd ) {
-				&_hvt_print( $fh, $i, ( $type eq 'SCALAR' ? $values->[$i] : ${ $values->[$i] } ), $el, $op, $border );
-				$border = 0;
+				&_s_a_prn( $fh, $i, $values, $el, $op, \$border, \$col );
 			}
 			next;
 		}
@@ -668,32 +731,30 @@ sub _mixed_indices {
 			if( $ii =~/\-$/) { # 7(-)
 
 				for( my $i = $n[0]; $i < $nd; ++$i ) {
-					&_hvt_print( $fh, $i, ( $type eq 'SCALAR' ? $values->[$i] : ${ $values->[$i] } ), $el, $op, $border );
-					$border = 0;
+					&_s_a_prn( $fh, $i, $values, $el, $op, \$border, \$col );
 				}
 
 			}
 			else { # 4 || 0
-				my $i = $n[0];
-				&_hvt_print( $fh, $i, ( $type eq 'SCALAR' ? $values->[$i] : ${ $values->[$i] } ), $el, $op, $border );
-				$border = 0;
+				&_s_a_prn( $fh, $n[0], $values, $el, $op, \$border, \$col );
 			}
 
 		}
 		else { # 1-3 ->(1..3) || 6-7-9 ->(6..9)
 			for( my $i = $n[0]; $i <= $n[-1]; ++$i ) {
-				&_hvt_print( $fh, $i, ( $type eq 'SCALAR' ? $values->[$i] : ${ $values->[$i] } ), $el, $op, $border );
-				$border = 0;
+				&_s_a_prn( $fh, $i, $values, $el, $op, \$border, \$col );
 			}
 		}
 
 	}
+
+	return $col;
 }
 
 
 sub _var_output {
 	my( $fh, $key, $vardata, $columns, $op ) = @_;
-	my $values =  (ref( $vardata ) eq 'HASH') ? $vardata->{ $key } : $vardata->[ $key ];
+	my $values =  (ref $vardata eq 'HASH') ? $vardata->{ $key } : $vardata->[ $key ];
 
 	@$columns or return;
 
@@ -701,12 +762,12 @@ sub _var_output {
 	our @logs;
 	our $nlo;
 
-	if( ref( \$values ) eq 'SCALAR') { # key => SCALAR
+	if( ref \$values eq 'SCALAR') { # key => SCALAR
 		&_v_print( $fh, $key, $values, $columns->[0], $op );
 		return;
 	}
 
-	if( ref( $values ) eq 'ARRAY') { # key => ARRAY
+	if( ref $values eq 'ARRAY') { # key => ARRAY
 
 		# Forming a table
 		my $row = 0;
@@ -725,69 +786,49 @@ push @logs, '--> Table row = '. $row if $DEBUG;
 
 				my $val;
 				if( defined $ki ) {
-					if( ref(\$d) eq 'SCALAR') { # ARRAY.SCALAR in regular vector
+					if((ref \$d eq 'SCALAR') or (ref \$d eq 'REF' and ref $d eq 'SCALAR')) { # (ARRAY.SCALAR or ARRAY.REF->SCALAR) in regular vector
 
 						if( $ki =~/^[\d,\-]+$/) {
 						# mixed indices, e.g.: 1-3,6-7-9,-,4,-5,0,7- or 3- (i.e. 3..arr_end) or 0-5 (0..5) or -1- (-1,-2,..arr_start)
 							last _var_output_M0 if $row;
 
-							&_mixed_indices( $fh, 'SCALAR', $ki, $nd, $values, $el, $op, $border );
-							next;
+							if( $_ = &_mixed_indices( $fh, $ki, $values, $el, $op, $border ) ) {
+								$col += $_ - 1;
+							}
 						}
-						else {
-							next;
-						}
+						next;
 					}
-					elsif( ref(\$d) eq 'REF' and ref($d) eq 'SCALAR') { # ARRAY.REF->SCALAR in regular array
-						if( $ki =~/^[\d,\-]+$/) {
-						# mixed indices, e.g.: 1-3,6-7-9,-,4,-5,0,7- or 3- (i.e. 3..arr_end) or 0-5 (0..5) or -1- (-1,-2,..arr_start)
-							last _var_output_M0 if $row;
-
-							&_mixed_indices( $fh, 'REF', $ki, $nd, $values, $el, $op, $border );
-							next;
-						}
-						else {
-							next;
-						}
-					}
-					elsif( ref($d) eq 'HASH' and defined( $d->{$ki} ) ) { # ARRAY.HASH
+					elsif( ref $d eq 'HASH' and defined( $d->{$ki} ) ) { # ARRAY.HASH
 						$val = $d->{$ki};
 
-						if( ref($val) eq 'ARRAY') { # ARRAY.HASH.ARRAY
+						if( ref $val eq 'ARRAY') { # ARRAY.HASH.ARRAY
 							for my $vv ( @$val ) {
-								next unless ref(\$vv) eq 'SCALAR';
+								next unless ref \$vv eq 'SCALAR';
 
 								&_hvt_print( $fh, $ki, $vv, $el, $op, $border );
-
 								++$col;
 							}
 							next;
 						}
-						elsif( ref(\$val) ne 'SCALAR') { # TODO for REF
+						elsif( ref \$val ne 'SCALAR') { # TODO for REF
 							next;
 						}
 					}
-					elsif( ref($d) eq 'ARRAY' and defined( $d->[$ki] ) ) { # ARRAY.ARRAY
-						$val = $d->[$ki];
+					elsif( ref $d eq 'ARRAY') { # ARRAY.ARRAY
 
-						if( ref($val) eq 'ARRAY') { # ARRAY.ARRAY.ARRAY
-							for my $vv ( @$val ) {
-								next unless ref(\$vv) eq 'SCALAR';
-
-								&_hvt_print( $fh, $ki, $vv, $el, $op, $border );
-
-								++$col;
+						if( $ki =~/^[\d,\-]+$/) {
+						# mixed indices, e.g.: 1-3,6-7-9,-,4,-5,0,7- or 3- (i.e. 3..arr_end) or 0-5 (0..5) or -1- (-1,-2,..arr_start)
+							if( $_ = &_mixed_indices( $fh, $ki, $d, $el, $op, $border ) ) {
+								$col += $_ - 1;
 							}
-							next;
-						}
-						elsif( ref(\$val) ne 'SCALAR') {
-							next;
+#							next;
 						}
 
+						next;
 					}
 					elsif( $op->{def} ) {
 
-push @logs, "-->\tl.$. NOT defined %%%V:". $ki if $DEBUG;
+push @logs, "~~> l.$. NOT defined %%%V:". $ki if $DEBUG;
 
 						next;
 					}
@@ -808,7 +849,7 @@ push @logs, "-->\tl.$. NOT defined %%%V:". $ki if $DEBUG;
 		}
 
 	}
-	elsif( ref( $values ) eq 'HASH') {
+	elsif( ref $values eq 'HASH') {
 
 		my $col = 0;
 		foreach my $el ( @$columns ) { # loop through parameters of %%%VAR-structure
@@ -818,21 +859,21 @@ push @logs, "-->\tl.$. NOT defined %%%V:". $ki if $DEBUG;
 
 			my $val;
 			if( defined $ki ) {
-				if( ref( \$values->{$ki} ) eq 'SCALAR' and defined( $values->{$ki} )) { # HASH.SCALAR
+				if( ref \$values->{$ki} eq 'SCALAR' and defined( $values->{$ki} )) { # HASH.SCALAR
 					$val = $values->{$ki};
 				}
-				elsif( ref( \$values->{$ki} ) eq 'REF' and ref( $values->{$ki} ) eq 'SCALAR') { # HASH.REF->SCALAR
+				elsif( ref \$values->{$ki} eq 'REF' and ref $values->{$ki} eq 'SCALAR') { # HASH.REF->SCALAR
 					$val = ${ $values->{$ki} };
 				}
-				elsif( $ki eq '@' and ref( $values->{'@'} ) eq 'ARRAY') {
+				elsif( $ki eq '@' and ref $values->{'@'} eq 'ARRAY') {
 					for my $k ( @{ $values->{'@'} } ) {
 						next unless defined($k) && exists( $values->{$k} );
 
 						my $v;
-						if( ref( \$values->{$k} ) eq 'SCALAR') {
+						if( ref \$values->{$k} eq 'SCALAR') {
 							$v = $values->{$k};
 						}
-						elsif( ref( \$values->{$k} ) eq 'REF' and ref( $values->{$k} ) eq 'SCALAR') {
+						elsif( ref \$values->{$k} eq 'REF' and ref $values->{$k} eq 'SCALAR') {
 							$v = ${ $values->{$k} };
 						}
 						elsif( $op->{def} ) {
@@ -847,7 +888,7 @@ push @logs, "-->\tl.$. ". 'NOT HASH.ARRAY.SCALAR %%%V:@->{'.$k."} in %%%VAR:". $
 					next;
 				}
 				elsif( $op->{def} ) {
-push @logs, "-->\tl.$. NOT HASH.SCALAR or NOT defined %%%V:". $ki if $DEBUG;
+push @logs, "~~> l.$. NOT HASH.SCALAR or NOT defined %%%V:". $ki if $DEBUG;
 
 					next;
 				}
@@ -902,7 +943,7 @@ The following pseudo-code extract demonstrates this:
 Fragment of the original (source) TeX file with fillable fields 
 C<myParam>, C<myArray>, C<myHash>, C<myTable_array>, and C<myTable_hash>:
 
-  %%%TDZ: -- beginning of The Dead Zone
+  %%%TDZ:  %-- beginning of The Dead Zone
   \documentclass[10pt,a4paper]{article}
   \usepackage[english]{babel}
   \usepackage{amsmath}
@@ -929,18 +970,20 @@ C<myParam>, C<myArray>, C<myHash>, C<myTable_array>, and C<myTable_hash>:
   \end{tcolorbox}
 
   \begin{tabular}{%
-   c
+  c
   %%%VAR: myArray
-   l  %%%ADD:%  -- column "l" type will repeat as many times as myArray size, e.g. 'lll...l'
-   lllll
+  l %%%ADD:%  -- column "l" type will repeat as many times as myArray size, e.g. 'lll...l'
+  lllll
   %%%END:
   }
   % head of table
   Expense item &
   %%%VAR: myArray
-  %%%ADDX: &  %-- eXcept 1st (0) row (record)
-  \multicolumn{1}{c}{  %%%ADD:%  -- there will be no line break
-  2020 %%%V:@%  % there will be no line break also
+  %-- eXcept 1st (0) row (record)
+  %%%ADDX: &
+  \multicolumn{1}{c}{ %%%ADD:%  -- there will be no line break
+  % there will be no line break also
+  2020 %%%V:@%
   } %%%ADDE:  -- final part of '@' variables
   & 2021 & 2022 & 2023 & 2024 & 2025  % All of this will be replaced until %%%END:
   %%%END:
@@ -966,9 +1009,9 @@ C<myParam>, C<myArray>, C<myHash>, C<myTable_array>, and C<myTable_hash>:
   \\ \hline %%%ADD:
    SPECIFY VALUE 0!  %%%V:0
   &  %%%ADD:
-  \multicolumn{1}{c}{  %%%ADD:% -- there will be no line break
-   SPECIFY VALUES from 3 to last element of array!  %%%V:3-%  } %-- ' }' will be added to right of values
-  }
+  \multicolumn{1}{c}{ %%%ADD:% -- there will be no line break
+   SPECIFY VALUES from 3 to last element of array! %%%V:3-%
+  } %%%ADDE:
   & %%%ADD:%
    SPECIFY VALUES 1 and 2 %%%V:1,2
   &  22222  &  33333  & 44444  &  55555
@@ -978,32 +1021,31 @@ C<myParam>, C<myArray>, C<myHash>, C<myTable_array>, and C<myTable_hash>:
   \\ \hline
   \end{tabular}
   ...
-  \begin{tabular}{ccc}
-   column2 & column1 & column0 \\
+  \begin{tabular}{cccc}
+   column2 & column1 & column0 \\\\
    \toprule
   %%%ENDZ: -- end of The Dead Zone
 
   %%%VAR: myTable_array
-   & %%%ADDX:%  % add " &" without line breaks ("\n"), except for the 1st
+  SPECIFY VALUE 4 %%%V: 4
+   & %%%ADD:%  % add " &" without line breaks ("\n")
   SPECIFY VALUES 2, 1, and 0! %%%V: -3-%
    & VALUE 1
    & VALUE 0
   \\ %%%ADD:
-  \midrule %%%ADD:
-  % All of this will be replaced until %%%TDZ: (or %%%END:)
+  \midrule %%%ADDX:
   ...
-  VALUE 2 & VALUE 1 & VALUE 0
+  VALUE 4 & VALUE 2 & VALUE 1 & VALUE 0
   \\
   \midrule
   ...
-  %%%TDZ: -- beginning of The Dead Zone.
+  %%%TDZ: %-- beginning of The Dead Zone.
   \end{tabular}
-
   ...
   \begin{tabbing}
   %%%ENDZ: -- end of The Dead Zone
   %%%VAR: myTable_hash
-  %%%ADDX: \\
+  %%%ADDX: \\\\
      SPECIFY VALUE 'A'! %%%V: A%
    \= %%%ADD:%
      SPECIFY VALUE 'B'! %%%V: B%
@@ -1025,12 +1067,12 @@ Dataset to fill TeX file (see above):
        myArray => [2024, 2025, 2026, 2027],
        myHash => {year0 => 123456, year1 => 789012, year2 => 345678, year3 => 901234},
        myTable_array => [ # custom user variable ARRAY-ARRAY
-          [00, 01, 02, 03, 04,], # row 0
+          ['00','01','02','03','04',], # row 0
           [10, 11, 12, 13, 14,], # row 1
           [20, 21, 22, 23, 24,], # row 2
        ],
        myTable_hash => [ # custom user variable ARRAY-HASH
-         {A=>00, B=>01, C=>02, }, # row 0
+         {A=>'00',B=>'01',C=>'02',}, # row 0
          {A=>10, B=>11, C=>12, }, # row 1
        ],
   };
@@ -1041,6 +1083,7 @@ Dataset to fill TeX file (see above):
 =item *
 Ready (filled, completed) TeX file:
 
+  %-- beginning of The Dead Zone
   \documentclass[10pt,a4paper]{article}
   \usepackage[english]{babel}
   \usepackage{amsmath}
@@ -1058,13 +1101,11 @@ Ready (filled, completed) TeX file:
   etc...
 
   \begin{tcolorbox}
-  \rule{0mm}{4.5em}Blah-blah blah-blah blah-blah
+  \rule{0mm}{4.5em}Blah-blah blah-blah blah-blah-- substitutes Variable as well
   \end{tcolorbox}
-
   \begin{tabular}{%
-   c
-   llll
-  }
+  c
+  llll}
   % head of table
   Expense item &
   \multicolumn{1}{c}{2024}
@@ -1086,54 +1127,54 @@ Ready (filled, completed) TeX file:
   789012
   &
   345678 & 901234
-
   \\ \hline
   00
-  &
-  \multicolumn{1}{c}{ 03 } %-- ' }' will be added to right of values
-  &
-  \multicolumn{1}{c}{ 04 } %-- ' }' will be added to right of values
-  & 01
-  & 02
+  & 
+  \multicolumn{1}{c}{03}
+  & 
+  \multicolumn{1}{c}{04}
+  &01
+  &02
   \\ \hline
   10
-  &
-  \multicolumn{1}{c}{ 13 } %-- ' }' will be added to right of values
-  &
-  \multicolumn{1}{c}{ 14 } %-- ' }' will be added to right of values
-  & 11
-  & 12
+  & 
+  \multicolumn{1}{c}{13}
+  & 
+  \multicolumn{1}{c}{14}
+  &11
+  &12
   \\ \hline
   20
-  &
-  \multicolumn{1}{c}{ 23 } %-- ' }' will be added to right of values
-  &
-  \multicolumn{1}{c}{ 24 } %-- ' }' will be added to right of values
-  & 21
-  & 22
+  & 
+  \multicolumn{1}{c}{23}
+  & 
+  \multicolumn{1}{c}{24}
+  &21
+  &22
   \\ \hline
   \end{tabular}
   ...
-  \begin{tabular}{ccc}
+  \begin{tabular}{cccc}
    column2 & column1 & column0 \\
    \toprule
-  02 & 01 & 00 \\
+  04
+   &02 &01 &00\\
   \midrule
-  12 & 11 & 10 \\
+  14
+   &12 &11 &10\\
   \midrule
-  22 & 21 & 20 \\
-  \midrule
+  24
+   &22 &21 &20\\
   \end{tabular}
   ...
   \begin{tabbing}
-  00 \= 01 \= 02
+  00 \=01 \=02
   \\
-  00 \= 01 \= 02
+  10 \=11 \=12
   \end{tabbing}
-
   etc...
-
   \end{document}
+
 
 =back
 
