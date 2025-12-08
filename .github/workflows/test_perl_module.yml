@@ -1,0 +1,68 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI Makefile
+
+# Управляет временем запуска рабочего процесса
+on:
+  # Запускает рабочий процесс при событиях push или pull_request запросах, но только для "main" («основной») ветки
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+#    branches: '*'
+#  schedule:
+#    - cron: '42 5 * * 0'
+
+  # Позволяет запускать этот рабочий процесс вручную из вкладки Actions («Действия»).
+  workflow_dispatch:
+
+# Рабочий процесс состоит из одного или нескольких заданий, которые могут выполняться последовательно или параллельно
+jobs:
+  # Этот рабочий процесс содержит одну задачу под названием "perl-job"
+  perl-job:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, macos-latest, windows-latest]
+        perl: ['latest', '5.42', '5.40', '5.38', '5.36', '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16', '5.14', '5.12', '5.10']
+    # Тип запускателя, на котором будет выполняться задание
+    runs-on: ${{matrix.runner}}
+    name: OS ${{matrix.runner}} Perl ${{matrix.perl}}
+
+    # Шаги представляют собой последовательность задач, которые будут выполнены в рамках работы.
+    steps:
+      # Извлекает ваш репозиторий в $GITHUB_WORKSPACE, чтобы ваше задание могло получить к нему доступ
+      - uses: actions/checkout@v4
+
+      # Выполняет одну команду с использованием оболочки runners
+      # Инсталляция версий Perl
+      - name: Set up perl
+        uses: shogo82148/actions-setup-perl@v1
+        with: 
+            perl-version: ${{ matrix.perl }}
+            distribution: ${{ ( startsWith( matrix.runner, 'windows-' ) && 'strawberry' ) || 'default' }}
+
+      # Выполняет набор команд с использованием оболочки runners.
+      - name: Install dependencies
+        run: |
+            cpanm --notest Module::Install
+            cpanm --installdeps --notest .
+
+      - name: Show content of log files on Linux
+        if: ${{ failure() && startsWith( matrix.runner, 'ubuntu-' )  }}
+        run: cat /home/runner/.cpanm/work/*/build.log
+
+      - name: Show content of log files on Mac
+        if: ${{ failure() && startsWith( matrix.runner, 'macos-' )  }}
+        run: cat /Users/runner/.cpanm/work/*/build.log
+
+      - name: Show content of log files on Windows
+        if: ${{ failure() && startsWith( matrix.runner, 'windows-' )  }}
+        run: cat C:/Users/RUNNER~1/.cpanm/work/*/build.log
+
+      - name: Regular Tests
+        run: |
+            perl Makefile.PL
+            make
+            make test
+#            RELEASE_TESTING=1 make test
