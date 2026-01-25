@@ -19,6 +19,7 @@ WriteMakefile(
       'File::Path'         => '2.18',
       'File::Compare'      => '1.00',
       'Carp'               => '0',
+      'Test::Output'       => '1.01',
     },
     test => {
       TESTS => 't/*.t t/*/*.t',

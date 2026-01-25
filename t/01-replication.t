@@ -12,7 +12,7 @@ use warnings;
 use utf8;
 
 # use Test::More 'no_plan';
-use Test::More tests => 45;
+use Test::More tests => 53;
 use Test::More::UTF8;
 # use Test::NoWarnings;
 use Test::Exception;
@@ -60,14 +60,14 @@ is( @$msg, 0, "Test #2: '$file' without errors");
 sub read_file {
 	my $file = shift;
 
-	open FILE, $file or die "Can't open '$file': $!\n";
+	open my $fh, '<', $file or die "Can't open '$file': $!\n";
 
 	my @msg;
-	while(<FILE>) {
+	while(<$fh>) {
 		s/\s+$//;
 		push @msg, $_;
 	}
-	close FILE;
+	close $fh;
 
 	return \@msg;
 }
@@ -104,7 +104,7 @@ unlink $ofile;
 $msg = replication( $file, $info, ofile => $ofile, def => 1, debug => 1 ) // [];
 
 my $msg_ref8 = [
-          '--> Check \'t/template_good.tex\' file',
+          '--> Checking source data: \'t/template_good.tex\'',
           '--> Using \'t/ready_good.tex\' file as output',
           '--> Open \'t/template_good.tex\'',
           '--> Open \'t/ready_good.tex\'',
@@ -280,7 +280,7 @@ $ofile = 't/ready_unknown.tex';
 $msg = replication( $file, $info, ofile => $ofile, silent =>1, debug => 0 ) // [];
 
 is( $msg->[0],
-	"!!! ERROR#1: 't/template_unknown.tex' does NOT exist or is EMPTY!",
+	"!!! ERROR#1: source ('t/template_unknown.tex') does NOT exist or is EMPTY!",
 	"Test #4: 't/template_unknown.tex'"
 );
 
@@ -325,7 +325,7 @@ $ofile = 't/ready_good.tex';
 $msg = replication( $file, $info, ofile => $ofile, def => 1, silent =>1, debug => 1 ) // [];
 
 my $msg_ref2 = [
-	"--> Check 't/template_good.tex' file",
+	"--> Checking source data: 't/template_good.tex'",
 	"--> Using 't/ready_good.tex' file as output",
 	"--> Open 't/template_good.tex'",
 	"--> Open 't/ready_good.tex'",
@@ -979,13 +979,13 @@ unlink $file_s, $ofile_s;
 ###Test #25
 $msg = replication( undef, $info, ofile => $ofile_s, silent =>1, debug => 0 ) // [];
 
-is( $msg->[0], '!!! ERROR#0: undefined input file!', 'Test #25: undefined input name of TeX file');
+is( $msg->[0], '!!! ERROR#0: undefined input FILE or ARRAY!', 'Test #25: undefined input name of TeX file');
 
 unlink $ofile_s;
 
 
 ###Test #26
-$tex = q|
+my $tex2 = q|
 %%%TDZ:  %-- beginning of The Dead Zone
 \documentclass[10pt,a4paper]{article}
 \usepackage[english]{babel}
@@ -1088,7 +1088,7 @@ etc...
 \end{document}
 |;
 
-lives_ok { &save_file( $file_s, \$tex ) } "Test #26.1: $file_s save of USAGE";
+lives_ok { &save_file( $file_s, \$tex2 ) } "Test #26.1: $file_s save of USAGE";
 
 $info = {
 		myParam => 'Blah-blah blah-blah blah-blah',
@@ -1115,7 +1115,7 @@ lives_ok { $msg = read_file( $ofile_s ) } "Test #27.1: $ofile_s read of USAGE";
 
 $msg_ref_s = [
 '',
-'%-- beginning of The Dead Zone',
+' %-- beginning of The Dead Zone',
 '\\documentclass[10pt,a4paper]{article}',
 '\\usepackage[english]{babel}',
 '\\usepackage{amsmath}',
@@ -1203,7 +1203,62 @@ $msg_ref_s = [
 
 is_deeply( $msg, $msg_ref_s, "Test #27.2: main example of USAGE");
 
+# Clean up
 unlink $file_s, $ofile_s;
+
+
+###Test 28
+my @tex3 = map{"$_\n"} split /\n/, $tex2;
+
+$msg = replication( \@tex3, $info, ofile => $ofile_s, silent =>1, debug => 0 ) // [];
+is( @$msg, 0, "Test #28.1: ARRAY input of USAGE");
+
+lives_ok { $msg = read_file( $ofile_s ) } "Test #28.2: $ofile_s filling ARRAY read of USAGE";
+
+is_deeply( $msg, $msg_ref_s, "Test #28.3: main example filling ARRAY of USAGE");
+
+unlink $ofile_s;
+
+
+###Test 29
+$msg = replication( {0 => "test\n"}, $info, ofile => $ofile_s, silent =>1, debug => 0 ) // [];
+
+$msg_ref = [
+	"!!! ERROR#6: invalid FILE or ARRAY input!",
+];
+
+is_deeply( $msg, $msg_ref, "Test #29: HASH input of USAGE");
+
+unlink $ofile_s;
+
+
+###Test 30
+
+# my $msg_ref_out = join("\n", map{s/\s+$//;$_} @$msg_ref_s ) . "\n";
+# use Test::Output;
+# stdout_is {replication( \@tex3, $info, ofile => *STDOUT, silent =>1, debug => 0 )} $msg_ref_out, "Test #30: STDOUT filling ARRAY";
+
+my $old_stdout;
+lives_ok {
+	open $old_stdout, '>&', STDOUT or die "Can't dup STDOUT: $!";
+	open STDOUT, '>', $ofile_s or die "Can't redirect STDOUT: $!";
+} "Test #30.1: Redirect STDOUT to a temporary file";
+
+$msg = replication( \@tex3, $info, ofile => *STDOUT, silent =>1, debug => 0 ) // [];
+
+lives_ok {
+	close STDOUT;
+	open STDOUT, '>&', $old_stdout or die "Can't restore STDOUT: $!";
+} "Test #30.2: Restore original STDOUT";
+
+# Read contents of temporary file
+lives_ok { $msg = read_file( $ofile_s ) } "Test #30.3: $ofile_s read";
+
+# Test the content
+is_deeply( $msg, $msg_ref_s, "Test #30.4: STDOUT content was captured correctly");
+
+unlink $ofile_s;
+
 
 rmtree('t/tmp');
 
