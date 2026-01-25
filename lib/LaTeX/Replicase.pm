@@ -427,7 +427,7 @@ push @logs, "~~> l.$. WARNING#8: ARRAY index is not numeric in %%%V:". $ki if $D
 		return;
 	}
 
-	$$tdz = 1 if $$z =~s/^\s*%%%+TDZ:\s?//; # The Dead Zone
+	$$tdz = 1 if $$z =~s/^\s*%%%+TDZ:\s?[\r\n]*//; # The Dead Zone
 
 	if( $$tdz ) { # The Dead Zone is ON
 		if( length $$z ) {# Output TeX
