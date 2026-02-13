@@ -34,6 +34,10 @@ jobs:
       # Извлекает ваш репозиторий в $GITHUB_WORKSPACE, чтобы ваше задание могло получить к нему доступ
       - uses: actions/checkout@v4
 
+      - name: Create cpanm work directory
+        run: mkdir -p C:\Users\RUNNER~1\.cpanm\work
+        shell: powershell
+
       # Runs a single command using the runners shell
       - name: Setup perl
         uses: shogo82148/actions-setup-perl@v1
