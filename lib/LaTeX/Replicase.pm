@@ -23,7 +23,7 @@ our %EXPORT_TAGS = ('all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( );
 
-our $VERSION = '0.701';
+our $VERSION = '0.703';
 our $DEBUG; $DEBUG = 0 unless defined $DEBUG;
 our @logs;
 our $nlo = 1; # Number Line Output, start of 1
@@ -214,7 +214,7 @@ push @logs, "--> Open '$ofile'" if $DEBUG;
 	[...]{...} -- descriptions (properties) of table columns:
 			{ki} -- name (key || index ) of a variable from $data->{ $key }
 			{%} -- NO \par
-			{v} -- to paste by default text (located in template) if variable =~/^\x{001}/
+			{v} -- to paste by default text (located in template) if variable =~/^\x{001}$/
 			{p} -- to paste text on right
 			{head}[...] -- TeX strings before %%%V:
 			{tail}[...] -- TeX strings after %%%V:
@@ -691,7 +691,7 @@ push @logs, "~~> l.$.".' NOT defined %%%V[AR]:'. $k if $DEBUG;
 		$v = '';
 	}
 
-	if( $v =~/^\x{001}/) { # by default text from template
+	if( $v =~/^\x{001}$/) { # by default text from template
 		if( exists $el->{v} ) {
 			print { $fh } $el->{v};
 
@@ -1401,18 +1401,17 @@ This construct can be used as an ON or OFF switch, for example by setting C<myPa
 to C<"~"> (i.e. C<" ">) or C<"%"> the text 'C<  After blah, \ldots blah.>' will be present or absent 
 in the finished (e.g. compiled by C<pdflatex> or C<latex>) PDF or DVI document.
 
-Another trick is to use the magic value C<"\x{001}"> (or C<chr(0x01)>) at the very beginning,
-as a starting sequence for a variable that acts as a trigger,
+Another trick is to use the magic value C<"\x{001}"> (or C<chr(0x01)>) for a variable that acts as a trigger,
 i.e., output the value to the left of C<%%%V:> in the template to the finished document.
 Such a trigger can work like this:
 
   Default value %%%V: myParam
 
-If C<myParam = "some text"> then that template will lead to the creation of such a TeX fragment:
+If C<< myParam => "some text" >> then that template will lead to the creation of such a TeX fragment:
 
   some text
 
-If C<myParam = "\x{001}some text"> or simply C<myParam = "\x{001}"> then output:
+If C<< myParam => "\x{001}" >> then output:
 
   Default value
 
@@ -1643,8 +1642,9 @@ For example:
    my $msg = replication( $file, $info, def =>1 );
 
 =item 2.
-B< C<%%%ADDE:> > is similar to C<%%%ADD:> (means B<Ending> C<%%%ADD>),
-but it differs in that text is added B<after> variable specified in C<%%%V:> tag.
+B< C<%%%ADDE:> > is similar to C<%%%ADD:>.
+
+Means B<Ending> C<%%%ADD>, but it differs in that text is added B<after> variable specified in C<%%%V:> tag.
 
 This C<%%%ADDE:> tag must follow immediately after C<%%%V:> tag 
 (i.e. there should not be C<%%%ADD:> tag before it), otherwise it will also become 
@@ -1657,12 +1657,14 @@ C<%%%ADD:> denotes what will come before the variable value,
 and C<%%%ADDE:> - after it (see above).
 
 =item 3.
-B< C<%%%ADDX:> > is similar to C<%%%ADD:> for all lines (records)
-B<eXcept the first column (0) of first record (0)> or B<after the last column of last record>.
+B< C<%%%ADDX:> > is similar to C<%%%ADD:>.
 
-=item 3.
-B< C<%%%ADDA:> > is similar to C<%%%ADD:> (means that C<%%%ADD> is Always present),
-but it is not linked to any C<%%%V:> in the block of C<%%%VAR:>,
+For all lines (records) B<eXcept the first column (0) of first record (0)> or B<after the last column of last record>.
+
+=item 4.
+B< C<%%%ADDA:> > is similar to C<%%%ADD:>.
+
+Means that C<%%%ADD> is B<Always> present, but it is not linked to any C<%%%V:> in the block of C<%%%VAR:>,
 meaning its contents will not depend on the variable's uncertainty of C<%%%V:>,
 and its value will be output in any case and in the appropriate order.
 
@@ -1683,7 +1685,7 @@ If C<< myHash = { myKey => undef, ... } >>, then that template will lead to the 
 
 =back
 
-If any C<%%%ADDx:> ends in C<%> (e.g. C<%%%ADD:%>, C<%%%ADDE:%>, or C<%%%ADDX:%> ), a newline is suppressed.
+If any C<%%%ADDx:> ends in C<%> (e.g. C<%%%ADD:%>, C<%%%ADDA:%>, C<%%%ADDE:%>, or C<%%%ADDX:%> ), a newline is suppressed.
 (By default, a newline always occurs after adding text).
 
 =back

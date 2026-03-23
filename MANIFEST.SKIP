@@ -48,7 +48,7 @@ README.md
 \B\.prove$
 
 # Avoid MYMETA files
-# ^MYMETA\.
+^MYMETA\.
 
 # Temp files for new META
-# ^META_new\.(?:json|yml)
+^META_new\.(?:json|yml)

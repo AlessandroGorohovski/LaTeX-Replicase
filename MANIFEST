@@ -4,8 +4,6 @@ README
 SECURITY.md
 LICENSE
 MANIFEST
-MYMETA.yml
-MYMETA.json
 MANIFEST.SKIP
 lib/LaTeX/Replicase.pm
 t/00-pod.t
@@ -18,3 +16,5 @@ t/13-critic.t
 t/14-manifest.t
 t/template_good.tex
 t/template_test.tex
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

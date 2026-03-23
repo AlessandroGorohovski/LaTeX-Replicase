@@ -1201,7 +1201,7 @@ $info = {
 			{A=>10, B=>11, C=>12, D=>undef }, # row 1
 		],
 		paramUndef => undef,
-		trigger => "\x{001}1234567890",
+		trigger => "\x{001}",
 	};
 
 $msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1, debug => 0 ) // []; # debug => 0
