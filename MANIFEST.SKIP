@@ -5,6 +5,7 @@ ready_good.tex
 .tar.gz
 LaTeX-Replicase-*
 README.md
+Replicase.html
 
 # Avoid version control files.
 \B\.git\b
