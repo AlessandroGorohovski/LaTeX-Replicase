@@ -26,7 +26,7 @@ our %EXPORT_TAGS = ('all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( );
 
-our $VERSION = '0.790';
+our $VERSION = '0.791';
 our $DEBUG = 0;
 $DEBUG += 0;
 
@@ -35,7 +35,7 @@ our $qe = qr/_|\b|$/o;
 
 # for glue
 our $q = qr/\{\\hskip0pt +plus +0?.02em\}/o;
-our $p; $p = qr/\{\s*(?:(?>$q)|(??{$p}))*\s*\}/o;
+# our $p; $p = qr/\{\s*(?:(?>$q)|(??{$p}))*\s*\}/o;
 our $m = '{\\hskip0pt plus .02em}';
 
 # '!'=>\x21  '"'=>\x22  '#'=>\x23  '$'=>\x24  '%'=>\x25  '&'=>\x26  "'"=>\x27
@@ -224,7 +224,7 @@ _tex_escape_to_REase:
 sub REase {
 	$_[0] or return 0;
 
-	our( $qs, $qe, $q, $p, $m, $sI );
+	our( $qs, $qe, $q, $m, $sI );
 
 	my $opH = ref $_[1] eq 'HASH';
 
@@ -271,7 +271,7 @@ sub REase {
 
 		my $z = $_;
 
-		s/(?:(?<b>.{2,$n}[^\x5C])|(?<b>[^\x5C]|\b))(?<s>[^\x5C\p{Alpha}\.><'`=_\"-])(?(1)|(?=\p{Alpha}))/$+{b}$m$+{s}$m/g; #'
+		s/(?:(?<b>.{2,$n}[^\x5C])|(?<b>[^\x5C]|\b))(?<s>[^\x5C\p{Alpha}\.><\}\{'`=_\"-])(?(1)|(?=\p{Alpha}))/$+{b}$m$+{s}$m/g; #'
 
 		s/-{1,3}/$m$&$m/g; # don't touch the em dash
 		s/\<{1,2}/$m$&/g;
@@ -282,7 +282,7 @@ sub REase {
 		s/(?<=[[:alnum:]])(?:$q)+(?=[\)\]\}])//g; # before the closing parenthesis
 
 		# Reducing of excess glue
-		s/$p/$m/g;
+#		s/$p/$m/g;
 
 		# final removal of excess glue:
 		s/^(?:\s*$q\s*)+|(?:$q\s*)+$//g; # start & end glue
@@ -2101,7 +2101,8 @@ The added text is taken from the beginning of the line to the beginning of C<%%%
 
   Head blah, blah, \ldots blah. %%%ADD: Tail blah, blah, \ldots
 
-this text will be added: C<< 'Head blah, blah, \ldots blah.' >>
+this text will be added: C<< 'Head blah, blah, \ldots blah.' >>,
+and the text located to the right of C<%%%ADD:> (i.e. C<Tail blah, blah, \ldots> in this case) will be discarded.
 
 Or, if C<%%%ADD:> is located at the very beginning of line, then after it to the end of line
 (i.e. text located on the right), e.g.
@@ -2227,7 +2228,9 @@ LaTeX::Replicase provides these subroutines:
     REase( $value [, $options ] );
 
 
-=head2 replication( $source, $info [, %hash_options ] )
+=head2 replication()
+
+  my $msg = replication( $source, $info [, %hash_options ] )
 
 Creates a new output file from the specified TeX-document C<$source>, which is a template.
 The TeX-template C<$source> can be either a TeX-file or an array reference,
@@ -2294,7 +2297,7 @@ This option forces specifies the template and output files' character encoding a
 =item C<esc>
 
 This option applies C<tex_escape()> subroutine to all incoming values to mask 9 active TeX characters
-C<&> C<%> C<$> C<#> C<_> C<{> C<}> C<^> C<\> (see description of L<tex_escape()|tex_escape( $value [, $options ] )> subroutine below).
+C<&> C<%> C<$> C<#> C<_> C<{> C<}> C<^> C<\> (see description of L</"tex_escape()"> subroutine below).
 
 For example, the simplest way to use C<esc> is:
 
@@ -2311,7 +2314,7 @@ In general, the C<esc> option can contain the following keys:
 
 i.e. in C<esc> these keys can be separated by spaces, '_', and word boundaries.
 For a description of these keys, see the sections on
-L<tex_escape()|tex_escape( $value [, $options ] )> and L<REase()|REase( $value [, $options ] )>.
+L</"tex_escape()"> and L</"REase()">.
 
 This option can also be changed dynamically in the template itself using global C<< %%%V:=esc= 0|1|~|... >> tag,
 but
@@ -2331,7 +2334,8 @@ By default, C<< tail = 3 >>.
 C<tail> option has meaning if C<replication()> is called with C<REase>
 in C<esc> or C<< _ACTIONS_ >> option.
 
-For a description of C<tail>, see the section on L<REase()|REase( $value [, $options ] )>.
+Valid values for C<tail> are from 2 to 9.
+For a description of C<tail>, see the section on L</"REase()">.
 
 
 =item C<< _ACTIONS_ >>
@@ -2381,8 +2385,9 @@ first C<REase()> will be executed, then C<tex_escape()>.
 Thus, C<< _ACTIONS_ >> helps to finely control the template filling process.
 Duplicate or erroneous subroutines will be discarded.
 
-It's also important to return C<$mflag>, which then goes into the C<< _MFLAGS_ >> option 
-and is needed for C<tex_escape()> and C<REase()> if they are called later in the pipeline.
+If a custom user subroutine is used in C<< _ACTIONS_ >> pipeline, it is important to return C<$mflag> value,
+which then goes into the C<< _MFLAGS_ >> option and is needed for C<tex_escape()> and C<REase()> 
+if they are called later in the pipeline.
 These subroutines will not be executed if C<< _MFLAGS_ & 0b0100 >>.
 C<tex_escape()> will also not work if C<< _MFLAGS_ & 0b0110 >>.
 
@@ -2455,15 +2460,15 @@ Another way is to set the C<$DEBUG> package variable to enable debugging message
 C<replication> returns C<undef> or a reference to an error (and/or debug) message(s) array.
 
 
-=head2 tex_escape( $value [, $options ] );
+=head2 tex_escape()
 
-Masks (or replaces with equivalents) the active 9 TeX characters: C<&> C<%> C<$> C<#> C<_> C<{> C<}> C<^> C<\>
-with the corresponding: C<\&> C<\%> C<\$> C<\#> C<\_> C<\{> C<\}> C<\^\/> C<\char92\/> in the input C<$value>:
+  my $mflag = tex_escape( $value [, $options ] );
 
-  tex_escape( $value );
+Masks (or replaces with equivalents) the active 9 TeX characters: C<&>, C<%>, C<$>, C<#>, C<_>, C<{>, C<}>, C<^>, C<\>
+with the corresponding: C<\&>, C<\%>, C<\$>, C<\#>, C<\_>, C<\{>, C<\}>, C<\^\/>, C<\char92\/> in the input C<$value>
 
 With the facultative (optional) option C<~>, you can additionally replace 
-the character C<~> with the corresponding C<\~\/}>, e.g.:
+the character C<~> with the corresponding C<\~\/>, e.g.:
 
   tex_escape( $value, '~');
 
@@ -2479,14 +2484,22 @@ For example, C<$options> is a HASH:
 
 For example, C<$options> is a SCALAR:
 
-  my $mflag = tex_escape( $value, '~hyphen !stag -stag +stag;REase, strong mutual');
+  my $mflag = tex_escape( $value, '~hyphen, REase !stag -stag +stag; strong mutual');
 
 i.e. the SCALAR form of C<$options> allows passing additional options only as C<esc>.
 Key separators in C<esc> option can be spaces, '_', and word boundaries.
 
-=over 3
+=head3 hyphen
 
-=item %%%:
+This option makes compound words with "active" hyphens, 
+i.e. makes a replacement C<< ...abc-def... >> with C<< ...abc"=def... >>.
+
+=head3 REase
+
+includes an internal call to L</"REase()"> subroutines. (See below).
+
+
+=head3 start tag C<%%%:>
 
 If the C<$value> starts with the C<%%%:> tag, then this tag is removed
 (e.g. C<$value = '%%%:$\frac{12345}{67890}$'> is converted to C<$value = '$\frac{12345}{67890}$'>),
@@ -2496,7 +2509,7 @@ This means that the following start tags (stag) will remain untouched if they ar
 
 Three options (C<< !stag >>, C<< -stag >>, and C<< +stag >>) affect the action of the start tag (C<%%%:>):
 
-=over 6
+=over 3
 
 =item !stag
 
@@ -2521,6 +2534,9 @@ without masking active symbols.
 
 All three options, or just some of them, may be present at the same time, but C<< !stag >> suppresses the others.
 
+
+=head3 Re-masking active symbols
+
 By default, if already masked active symbols (C<< \& >> C<< \% >> C<< \$ >> C<< \# >> C<< \_ >>
 C<< \{ >> C<< \} >> C<< \^ >> C<< \char92 >>), they are skipped.
 
@@ -2537,7 +2553,7 @@ However, other TeX objects will be affected, if they exist.
 
 Two additional options -- C<strong> and C<mutual> influence this behavior.
 
-=over 6
+=over 3
 
 =item strong
 
@@ -2557,16 +2573,7 @@ C<< \char92 >> C<< \textbackslash >> C<< \relax >> C<< \hskip >>
 =back
 
 
-=item hyphen
-
-This option makes compound words with "active" hyphens, 
-i.e. makes a replacement C<< ...abc-def... >> with C<< ...abc"=def... >>.
-
-=item REase
-
-includes an internal call to the C<REase> routine. (See below).
-
-=back
+=head3 return codes
 
 C<tex_escape()> returns a bit flag C<$mflag> indicating whether C<$value> is modified:
 
@@ -2589,10 +2596,13 @@ changes were made and affected TeX structures and/or the start tag.
 C<tex_escape()> will not be executed if input C<< _MFLAGS_ & 0b0110 >>.
 
 
-=head2 REase( $value [, $options ] )
+=head2 REase()
 
-"Cuts" ("splits") C<$value>, recognizing non-alphabetic sections in it (except for the '\' character, 
-a sequence of characters that TeX cannot break with ordinary word breaks) and
+  my $mflag = REase( $value [, $options ] )
+
+"Cuts" ("splits") C<$value>, recognizing non-alphabetic sections in it 
+(except for these characters: C<< . >>, C<< > >>, C<< < >>, C<< } >>, C<< { >>, C<'>, C<`>, C<">, C<< = >>, C<< _ >>, C<< - >>, 
+and finally C<< \ >> character, a sequence of characters that TeX cannot break with ordinary word breaks) and
 glues the "cut" sections together with stretchable "glue" (i.e., a "spring" --- C<< {\hskip0pt plus .02em} >>).
 
 For example, this gibberish:
@@ -2606,9 +2616,11 @@ converts to a sequence (by default, C<< tail = 3 >>)
   '{\hskip0pt plus .02em}%'.
   '{\hskip0pt plus .02em},$,#'.
   '{\hskip0pt plus .02em},'.
-  '{\hskip0pt plus .02em}_,{,'.
-  '{\hskip0pt plus .02em}}'.
-  '{\hskip0pt plus .02em},^,\2'.
+  '{\hskip0pt plus .02em}_,{'.
+  '{\hskip0pt plus .02em},'.
+  '{\hskip0pt plus .02em}},^'.
+  '{\hskip0pt plus .02em},'.
+  '{\hskip0pt plus .02em}\2'.
   '{\hskip0pt plus .02em}qw\ea'.
   '{\hskip0pt plus .02em}-'.
   '{\hskip0pt plus .02em}sdf'.
@@ -2639,6 +2651,9 @@ For example, C<$options> is a SCALAR:
 
 i.e. the SCALAR form of C<$options> allows passing additional options only as C<esc>.
 
+
+=head3 tail
+
 Here, the main auxiliary option is C<tail>, which specifies the size (in characters) of the maximum 
 uncut non-alphabetic sections in the range from 1 to C<< tail + 1 >>.
 For example, for C<< tail = 5 >>, the sizes of uncut non-alphabetic sections will be 
@@ -2648,26 +2663,14 @@ from 1 to 6 characters, e.g.:
 
 Valid values for C<tail> are from 2 to 9.
 
-C<REase()> simultaneously "cleans" C<$value> from excess "glue", 
-excessively nested and empty TeX-blocks specified by curly braces C<< {} >>,
-e.g.:
-
-  '{{{124244234}}sdsdfdsfsdf{}{}'
-
-converts to a sequence (C<< tail = 3 >>)
-
-  '{\hskip0pt plus .02em}{{{1{\hskip0pt plus .02em}2'.
-  '{\hskip0pt plus .02em}4244'.
-  '{\hskip0pt plus .02em}2'.
-  '{\hskip0pt plus .02em}34}'.
-  '{\hskip0pt plus .02em}}'.
-  '{\hskip0pt plus .02em}sdsdfdsfsdf'
-
 If the $value ends with TeX-command C<< \relax\/ >>, then the value itself is not modified, it is skipped.
 C<< \relax\/ >> remains untouched at the end.
 
 C<REase()> also depends on C<%%%:> start tag and the C<< !stag >>, C<< -stag >> options
 (but not the C<< +stag >> option), similar to C<tex_escape()>.
+
+
+=head3 return codes
 
 C<REase()> returns a bit flag C<$mflag> indicating whether C<$value> is modified:
 
@@ -2715,6 +2718,9 @@ L<File::Compare>,
 and L<Carp>.
 
 =head1 SEE ALSO
+
+For LaTeX2e details see this unofficial reference manual:
+L<https://tug.org/texinfohtml/latex2e.html>
 
 Perl modules that offer similar functionality:
 
