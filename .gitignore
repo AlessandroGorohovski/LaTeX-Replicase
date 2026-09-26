@@ -2,6 +2,7 @@ sandbox/
 sandbox
 LaTeX-Replicase-*
 Replicase.html
+test.log
 *.tmp
 
 .vimrc
