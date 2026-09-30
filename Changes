@@ -113,3 +113,7 @@ Revision history for Perl extension LaTeX::Replicase.
 	- Fixed old tests.
 	- Increased diversity of code test coverage.
 	- The manual has been corrected and expanded.
+
+0.795
+	- Fixed REase()
+

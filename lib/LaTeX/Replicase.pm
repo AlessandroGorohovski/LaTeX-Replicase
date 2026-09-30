@@ -26,7 +26,7 @@ our %EXPORT_TAGS = ('all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( );
 
-our $VERSION = '0.793';
+our $VERSION = '0.795';
 our $DEBUG = 0;
 $DEBUG += 0;
 
@@ -278,11 +278,10 @@ sub REase {
 		s/\>{1,2}/$&$m/g;
 
 		# removal of excess glue:
-		s/(?<=[\(\[\{])(?:$q)+(?=[[:alnum:]])//g; # after the opening parenthesis
-		s/(?<=[[:alnum:]])(?:$q)+(?=[\)\]\}])//g; # before the closing parenthesis
+		s/(?<=[\(\[\{«])(?:$q)+(?=[[:alnum:]])//g; # after the opening parenthesis
+		s/(?<=[[:alnum:]])(?:$q)+(?=[\)\]\}»])//g; # before the closing parenthesis
 
-		# Reducing of excess glue
-#		s/$p/$m/g;
+		s/(?<=\p{Alpha})(?:$q)+([,\.:!;])/$1$m/g; # permutation for these symbols
 
 		# final removal of excess glue:
 		s/^(?:\s*$q\s*)+|(?:$q\s*)+$//g; # start & end glue
