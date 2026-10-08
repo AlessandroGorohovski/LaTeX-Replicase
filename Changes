@@ -114,6 +114,8 @@ Revision history for Perl extension LaTeX::Replicase.
 	- Increased diversity of code test coverage.
 	- The manual has been corrected and expanded.
 
-0.795
+0.796 Thu Oct 08 08:08:08 2026
 	- Fixed REase()
-
+	- Added control of WARNING#5 and WARNING#9 cases for %%%V:<ARRAY|HASH>
+	- Added new tests.
+	- Fixed old tests.

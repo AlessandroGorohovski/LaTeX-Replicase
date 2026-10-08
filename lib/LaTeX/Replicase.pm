@@ -26,9 +26,8 @@ our %EXPORT_TAGS = ('all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( );
 
-our $VERSION = '0.795';
+our $VERSION = '0.796';
 our $DEBUG = 0;
-$DEBUG += 0;
 
 our $qs = qr/^|_|\b/o;
 our $qe = qr/_|\b|$/o;
@@ -264,10 +263,9 @@ sub REase {
 	my $stag = ($arr[0] =~s/^%%%://) ? $& : ''; # start tag
 	my $etag = ($_[0] =~/\s+$/) ? $& : ''; # end tag
 
-
 	for( @arr ) {
 		next if $n + 2 > length
-				or /\A\p{Alpha}\Z/;
+				or /^\p{Alpha}+$/;
 
 		my $z = $_;
 
@@ -313,7 +311,7 @@ sub replication {
 	my( $source, $info, %op ) = @_;
 
 	our $DEBUG;
-	$op{debug} //= $DEBUG + 0;
+	$op{debug} //= $DEBUG;
 
 	our( $qs, $qe, $sI, $sII );
 
@@ -698,17 +696,6 @@ sub _replisome {
 				return 0;
 			}
 		}
-#		elsif( ( $vtype eq 'HASH' and (
-#					   ref( $$vardata->{ $$key } ) =~/^(?:HASH|ARRAY|SCALAR)$/ # REF->SCALAR
-#					or ref \$$vardata->{ $$key } eq 'SCALAR'
-#				)
-#			)
-#			or ( $vtype eq 'ARRAY' and (
-#					   ref( $$vardata->[ $$key ] ) =~/^(?:HASH|ARRAY|SCALAR)$/ # REF->SCALAR
-#					or ref \$$vardata->[ $$key ] eq 'SCALAR'
-#				)
-#			)
-#		)
 		else {
 			my $vk = $vtype eq 'HASH' ? $$vardata->{ $$key } : $$vardata->[ $$key ];
 			my $sclr = (ref(\$vk) eq 'SCALAR' or ref($vk) eq 'SCALAR');
@@ -911,16 +898,23 @@ push @{$op->{logs}}, "~~> l.$. NOT defined key in %%%VAR:". $k if ! defined($vk)
 
 		my $inidata = $$data; # save initial environment
 
+		my $slash;
 		if( $k =~s/^\/+//) {
+			$slash = 1;
 			$$data = $info; # reset to root environment
 
 			length($k) or return 0;
 		}
+		elsif( $k =~/\//) {
+			$slash = 1;
+		}
 
 		# Search nested sub-keys
-		my $x = 0; # for unknown sub-key
-		for my $sk ( split '/', $k ) {
-			length( $sk ) or next;
+		my $x = 0; # 1 is SCALAR value found or unknown sub-key
+		my @kk = grep length, split '/', $k;
+
+		my $i = 0;
+		foreach my $sk ( @kk ) {
 
 			my $dtype = ref $$data;
 
@@ -948,8 +942,19 @@ push @{$op->{logs}}, "~~> l.$. WARNING#3: unknown sub-key '$sk' in %%%V:". $k if
 
 			# Check type
 			if( $dtp =~/^(?:ARRAY|HASH)$/ ) {
-				$$data = $d; #  sub-key (path) found: redefined
-				next;
+
+				if( $slash ) {
+					$$data = $d; #  sub-key (path) found: redefined
+					next;
+				}
+
+push @{$op->{logs}}, "~~> l.$. WARNING#5: (ARRAY|HASH) w/o '/' is wrong type of '$sk' in %%%V:". $k if $op->{debug} or ! $op->{ignore};
+
+				print { $op->{fh} } $$z;
+				++$op->{nlo};
+
+				$x = 1;
+				last;
 			}
 
 			my $v;
@@ -971,11 +976,16 @@ push @{$op->{logs}}, "~~> l.$. WARNING#4: wrong type (not SCALAR|ARRAY|HASH) of 
 
 			$_ = &_v_print( $k, $v, \%el, $op ) and return $_;
 
+push @{$op->{logs}}, "~~> l.$. WARNING#9: '$sk' is not at the end of %%%V:". $k if $i < $#kk and ( $op->{debug} or ! $op->{ignore} );
+
 			$x = 1;
 			last;
 		}
+		continue {
+			++$i;
+		}
 
-		$$data = $inidata if $x; # value found or unknown sub-key: reset to initial environment
+		$$data = $inidata if $x; # SCALAR value found or unknown sub-key: reset to initial environment
 
 		return 0;
 	}
@@ -1792,7 +1802,7 @@ C<replication()> supports only the following structures included in C<$info>.
 =item 1.
 single-level:
 
-C<SCALAR>, C<REF>, C<ARRAY>, C<HASH>, and their combination, e.g.
+C<SCALAR>, C<REF>, C<ARRAY>, C<HASH>, and their combinations, e.g.
 
   my $v = 'Blah-blah';
   my @ell = (11, 22, 33);
@@ -1811,7 +1821,7 @@ C<SCALAR>, C<REF>, C<ARRAY>, C<HASH>, and their combination, e.g.
 =item 2.
 two-level:
 
-C<ARRAY.ARRAY>, C<ARRAY.HASH>, C<ARRAY.REF>, C<HASH.ARRAY>, and their combination, e.g.
+C<ARRAY.ARRAY>, C<ARRAY.HASH>, C<ARRAY.REF>, C<HASH.ARRAY>, and their combinations, e.g.
 
   my $info = {
        Array_array => [ # custom user variable ARRAY-ARRAY
@@ -1847,7 +1857,7 @@ C<ARRAY.ARRAY>, C<ARRAY.HASH>, C<ARRAY.REF>, C<HASH.ARRAY>, and their combinatio
 =item 3.
 three-level:
 
-C<ARRAY.ARRAY.ARRAY>, C<ARRAY.HASH.ARRAY>, and their combination, e.g.
+C<ARRAY.ARRAY.ARRAY>, C<ARRAY.HASH.ARRAY>, and their combinations, e.g.
 
   my $info = {
        Array_array_array => [
@@ -1871,7 +1881,7 @@ C<ARRAY.ARRAY.ARRAY>, C<ARRAY.HASH.ARRAY>, and their combination, e.g.
   };
 
 =item 4.
-a combination of the above 1..3
+the combinations of the above 1..3
 
 =back
 

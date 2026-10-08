@@ -297,11 +297,16 @@ is_deeply( [$_, $mflag], [$r, 0b0111 ], 'Test #'.$t. ": '$v' to '$r' after sub '
 
 
 ###Test #23
-$v = $_= q({{{124244234}}sdsdfdsfsdf{}{});
+$v = $_= q({{{124244234}}sdsdfdsfsdf 1 22 333 4444 55555 666666 7777777 x cv bvb cfhfhgfcvdg weter{}{});
 $r = '{\hskip0pt plus .02em}{{{1{\hskip0pt plus .02em}2'.
 '{\hskip0pt plus .02em}4244'.
 '{\hskip0pt plus .02em}2'.
-'{\hskip0pt plus .02em}34}}sdsdfdsfsdf{}{}';
+'{\hskip0pt plus .02em}34}}sdsdfdsfsdf 1 22 333 4444 5555'.
+'{\hskip0pt plus .02em}5 6666'.
+'{\hskip0pt plus .02em}6'.
+'{\hskip0pt plus .02em}6 7777'.
+'{\hskip0pt plus .02em}7'.
+'{\hskip0pt plus .02em}77 x cv bvb cfhfhgfcvdg weter{}{}';
 
 $mflag = REase($_);
 is_deeply( [$_, $mflag], [$r, 0b0111 ], 'Test #'.$t. ": '$v' to '$r' nested parentheses");

@@ -12,7 +12,7 @@ use warnings;
 use utf8;
 
 # use Test::More 'no_plan';
-use Test::More tests => 89;
+use Test::More tests => 93;
 use Test::More::UTF8;
 # use Test::NoWarnings;
 use Test::Exception;
@@ -629,6 +629,7 @@ $tex = q|
 %%%VAR: ParamII
 SPECIFY VALUE ParamII again (without END tag)!
 ~
+%%%V: =silent= ~
 |;
 
 lives_ok { &save_file( $file_s, \$tex ) } "Test #21.1: $file_s save";
@@ -648,7 +649,7 @@ lives_ok {
 		open STDERR, '>', $tmp_stderr or die "Can't redirect STDERR: $!";
 } "Test #21.1.1: Redirect STDERR to a temporary file";
 
-$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1, debug => 0 ) // [];
+$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>'?', def =>1, debug => 0 ) // [];
 
 lives_ok {
 		close STDERR;
@@ -1164,11 +1165,12 @@ unlink $ofile_s;
 
 
 ###NEXT SUB-TESTS 24.9-24.10
-$actions = [
+$actions = [ # phantoms
 		'Blah!',
+		[1..9],
 	];
 
-$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, debug => 0, esc => 'tex_escape',
+$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, debug => 0, esc => 'tex_escape, REase',
 	_ACTIONS_ => $actions ) // [];
 
 lives_ok { $msg = read_file( $ofile_s ) } "Test #24.9: $ofile_s read";
@@ -1833,12 +1835,69 @@ $msg_ref_s = [
 
 is_deeply( $msg, $msg_ref_s, "Test #32.3: example of property (*)");
 
+unlink $ofile_s;
+
+
+###Test 34
+$tex = q|
+%%%V: ///myVar/phantom
+%%%V: keyA
+%%%V: keyB
+%%%V: myHash
+\begin{tabbing}
+%%%VAR: //myHash//
+   SPECIFY VALUE 'A'! %%%V:A%
+ \= %%%ADD:
+   SPECIFY VALUE 'B'! %%%V: B%
+ \= %%%ADD:
+   SPECIFY VALUE 'C'! %%%V: C%
+ \= %%%ADD:
+   SPECIFY VALUE 'D'! %%%V:D%
+ \= %%%ADD:
+   SPECIFY VALUE 'E'! %%%V: E
+%%%ENDT:
+\end{tabbing}
+|;
+
+lives_ok { &save_file( $file_s, \$tex ) } "Test #34.1: $file_s save";
+
+$info = {
+		myVar => 1234567890,
+		keyA => 1,
+		keyB => 2,
+		myHash => {
+			A=>11, B=>12, C=>13, D=>14, E=>15,
+		},
+	};
+
+$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1, debug => 0 ) // [];
+
+is_deeply( $msg, [
+	'~~> l.2 WARNING#9: \'myVar\' is not at the end of %%%V:myVar/phantom',
+	'~~> l.5 WARNING#5: (ARRAY|HASH) w/o \'/\' is wrong type of \'myHash\' in %%%V:myHash',
+],
+"Test #34.2: '$file_s'");
+
+lives_ok { $msg = read_file( $ofile_s ) } "Test #34.3: $ofile_s read";
+
+$msg_ref_s = [
+'',
+1234567890,
+1,
+2,
+	'%%%V: myHash',
+	'\\begin{tabbing}',
+	'\\end{tabbing}'
+];
+
+is_deeply( $msg, $msg_ref_s, "Test #34.4: ");
+
+unlink $ofile_s;
+
 ###DEL###
 # open F, ">test.log";
 # print F Dumper($msg);
 # close F;
 # exit;
-
-unlink $ofile_s;
 
 rmtree('t/tmp');
