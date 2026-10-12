@@ -26,7 +26,7 @@ our %EXPORT_TAGS = ('all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( );
 
-our $VERSION = '0.796';
+our $VERSION = '0.797';
 our $DEBUG = 0;
 
 our $qs = qr/^|_|\b/o;
@@ -685,9 +685,10 @@ sub _replisome {
 
 			return $end if $end;
 
-			return 1 if $t && $t eq 'T'; # END of Template area --> output everything to the end of template without substitution
-
-			undef $$tdz if $t && $t eq 'Z';
+			if( $t ) {
+				return 1 if $t eq 'T'; # END of Template area --> output everything to the end of template without substitution
+				undef $$tdz; # if $t eq 'Z';
+			}
 
 			return 0 if $$z =~/%%%ENDZ?:/; # end of %%%VAR: tag
 
@@ -703,7 +704,7 @@ sub _replisome {
 			# Index of column in target table
 			my $j = ( @$columns && exists( $columns->[-1]{ki} ) ) ?
 						@$columns :
-						($#$columns // 0);
+						$#$columns; # ($#$columns // 0);
 			$j = 0 if $j < 0 or $sclr;
 
 			if( ! $sclr and $$z =~/^(.*?)\s?%%%+V:\s*(\*?)([^\s:%#\*]+)(%?)\s?(.*)/) {
@@ -825,7 +826,7 @@ push @{$op->{logs}}, "~~> l.$. WARNING#8: ARRAY index is not numeric in %%%V:". 
 	if( $$z =~/(.*?)\s?%%%+VAR:\s*(\*?)([^\s:%#\*]+)(%?)\s?(.*)/) {
 		my $before = $1; # Value, by default
 		my $eXi = $2; # eXistence of Value
-		my $k = $3; # name (key)
+		my $k = my $k0 = $3; # name (key)
 		my $Np = $4; # NO \par
 		my $paste = $5; # on right text for SCALAR only
 
@@ -833,11 +834,11 @@ push @{$op->{logs}}, "~~> l.$. WARNING#8: ARRAY index is not numeric in %%%V:". 
 		my $vd = ( $k =~s/^\/+//) ? $info : $$data;
 
 		my $xk; # for unknown/undefined sub-key
+		my @kk = grep length, split '/', $k;
 
 		# Search nested sub-keys
-		for my $sk ( split '/', $k ) {
+		foreach my $sk ( @kk ) {
 			$$vardata = $vd;
-			length( $sk ) or next;
 
 			my $vtype = ref $vd;
 
@@ -859,7 +860,7 @@ push @{$op->{logs}}, "~~> l.$. WARNING#8: ARRAY index is not numeric in %%%V:". 
 		@$columns = ();
 
 		if( $xk ) {
-push @{$op->{logs}}, "~~> l.$. WARNING#2: unknown or undef ARRAY|HASH|SCALAR|REF.SCALAR of sub-key '$xk' in %%%VAR:". $k if $op->{debug} or ! $op->{ignore};
+push @{$op->{logs}}, "~~> l.$. WARNING#2: unknown or undef ARRAY|HASH|SCALAR|REF.SCALAR of sub-key '$xk' in %%%VAR:". $k0 if $op->{debug} or ! $op->{ignore};
 
 			$$vardata = $$data;
 			print { $op->{fh} } $$z;
@@ -868,11 +869,11 @@ push @{$op->{logs}}, "~~> l.$. WARNING#2: unknown or undef ARRAY|HASH|SCALAR|REF
 		}
 
 		# key or sub-...sub-key is found
-push @{$op->{logs}}, "--> l.$. Found %%%VAR:". $k if $op->{debug};
+push @{$op->{logs}}, "--> l.$. Found %%%VAR:". $k0 if $op->{debug};
 
 		my $vk = ref $$vardata eq 'HASH' ? $$vardata->{$k} : $$vardata->[$k];
 
-push @{$op->{logs}}, "~~> l.$. NOT defined key in %%%VAR:". $k if ! defined($vk) && $op->{debug};
+push @{$op->{logs}}, "~~> l.$. NOT defined key in %%%VAR:". $k0 if ! defined($vk) && $op->{debug};
 
 		return 0 if &_chk_var( $k, $vk, $eXi, $Np, \$paste, \$before, $chkVAR, $columns, $z, $op );
 
@@ -887,7 +888,13 @@ push @{$op->{logs}}, "~~> l.$. NOT defined key in %%%VAR:". $k if ! defined($vk)
 		my $x = $2 || 0;
 		my $i = ( $op->{$k} && $op->{$k} =~/\d\d?/ ) ? $& : 0;
 
-		$op->{$k} = $x if $i < 2;
+		if( $i < 2) {
+			$op->{$k} = $x ;
+
+push @{$op->{logs}}, "~~> l.$. Option =$k= set to $x" if $op->{debug};
+
+		}
+
 		return 0;
 	}
 	elsif( $$z =~/^(?<v>.*?)\s?%%%+V:\s*(?<x>\*?)(?<k>[^\s:%#\*]+)(?<p>%?)\s?(?<s>.*)/) {
@@ -1012,6 +1019,7 @@ sub _data_redef {
 
 	if( ref $d eq 'ARRAY' or ref $d eq 'HASH') {
 		$$data = $d; # redefined for %%%VAR:
+		$$k = $sk;
 		return 0;
 	}
 
@@ -1048,7 +1056,7 @@ sub _chk_var {
 					$$chkVAR |= 0b01000;
 				}
 				else {
-					$$chkVAR |= 0b10000;
+					$$chkVAR |= 0b10000; # other
 				}
 			}
 		}
@@ -1056,7 +1064,7 @@ sub _chk_var {
 			$$chkVAR |= 0b00100; # by default, SCALAR
 		}
 
-		if( ! $$chkVAR or $$chkVAR > 0b01000 or ($$chkVAR & ($$chkVAR - 1)) ) {
+		if( $$chkVAR > 0b01000 or ($$chkVAR & ($$chkVAR - 1)) ) { # ! $$chkVAR or 
 push @{$op->{logs}}, "~~> l.$. WARNING#6: mixed types (ARRAY with HASH with SCALAR or other) of %%%VAR:". $k if $op->{debug} or ! $op->{ignore};
 
 			print { $op->{fh} } $$z;
@@ -1218,13 +1226,17 @@ sub _s_a_prn {
 		for( @$val ) {
 			next if ref \$_ ne 'SCALAR';
 
-			$end = &_hvt_print( $i, $_, $el, $op, $$border );
+			# [...].ARRAY.ARRAY.SCALAR
+			$end = &_hvt_print( $i, $_, $el, $op, $$border ); 
 
 			++$$col;
 			$$border = 0;
 
 			last if $end;
 		}
+	}
+	else {
+push @{$op->{logs}}, "~~> l.$. WARNING#10: ...ARRAY.ARRAY[$i] is NOT a SCALAR in %%%V:$i ...skipped" if $op->{debug} or ! $op->{ignore};
 	}
 
 	return $end;
@@ -1350,7 +1362,7 @@ push @{$op->{logs}}, '--> Table row = '. $row if $op->{debug};
 							for my $vv ( @$val ) {
 								next unless ref \$vv eq 'SCALAR';
 
-								$end = &_hvt_print( $ki, $vv, $el, $op, $border ) and last _var_output_M0;
+								last _var_output_M0 if $end = &_hvt_print( $ki, $vv, $el, $op, $border );
 								++$col;
 							}
 
@@ -1382,7 +1394,7 @@ push @{$op->{logs}}, "~~> l.$. NOT defined %%%V:". $ki if $op->{debug};
 					$ki = '';
 				}
 
-				$end = &_hvt_print( $ki, $val, $el, $op, $border ) and last _var_output_M0;
+				last _var_output_M0 if $end = &_hvt_print( $ki, $val, $el, $op, $border );
 			}
 			continue {
 				++$col;
@@ -1431,7 +1443,7 @@ push @{$op->{logs}}, "-->\tl.$. ". 'NOT HASH.ARRAY.SCALAR %%%V:@->{'.$k.'} in %%
 							next;
 						}
 
-						$end = &_hvt_print( $k, $v, $el, $op, $border ) and last _var_output_M0;
+						last if $end = &_hvt_print( $k, $v, $el, $op, $border );
 						$border = 0;
 					}
 
@@ -1448,7 +1460,7 @@ push @{$op->{logs}}, "~~> l.$. NOT HASH.SCALAR or NOT defined %%%V:". $ki if $op
 				$ki = '';
 			}
 
-			$end = &_hvt_print( $ki, $val, $el, $op, $border ) and last;
+			last if $end = &_hvt_print( $ki, $val, $el, $op, $border );
 		}
 		continue {
 			++$col;

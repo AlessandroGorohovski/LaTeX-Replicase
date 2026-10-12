@@ -900,7 +900,7 @@ SPECIFY VALUE %%%V:E%
 %%%VAR: Mixed
 ~ %%%ADD:%
 SPECIFY VALUE %%%V:@
-%%%END:
+%%%ENDZ:
 emptyArray:
 %%%VAR: emptyArray
 ~ %%%ADD:%
@@ -953,11 +953,13 @@ $msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1, debu
 
 my $msg_ref_19_2 = [
 	'~~> l.16 WARNING#4: wrong type (not SCALAR|ARRAY|HASH) of \'RefSub\' in %%%V:RefSub',
+	'~~> l.18 Option =debug= set to 1',
           '~~> l.19 WARNING#2: unknown or undef ARRAY|HASH|SCALAR|REF.SCALAR of sub-key \'RefSub\' in %%%VAR:RefSub',
 	'~~> l.35 WARNING#8: ARRAY index is not numeric in %%%V:k',
           '~~> l.64 WARNING#6: mixed types (ARRAY with HASH with SCALAR or other) of %%%VAR:Mixed',
           '~~> l.66 WARNING#3: unknown sub-key \'@\' in %%%V:@',
           '~~> l.71 WARNING#7: empty ARRAY of %%%VAR:emptyArray',
+	'~~> l.79 Option =debug= set to 1',
           '--> l.80 Found %%%VAR:paramUndef',
           '~~> l.80 NOT defined key in %%%VAR:paramUndef',
           '~~> l.82 NOT defined %%%V:paramUndef',
@@ -1139,7 +1141,7 @@ push @$actions, {
 		_name_ => 'add_genius',
 		_code_ => sub{ 
 			$_[0] .= 'genius';
-			return 0b0001;
+			return undef; # 0b0001
 		}
 	},
 	'tex_escape',
@@ -1166,6 +1168,7 @@ unlink $ofile_s;
 
 ###NEXT SUB-TESTS 24.9-24.10
 $actions = [ # phantoms
+		'REase',
 		'Blah!',
 		[1..9],
 	];
@@ -1278,7 +1281,7 @@ etc...
 \\\\ \hline
 HASH Summary
 %%%VAR: myHash
- &  %%%ADD:%
+ &  %%%ADDE:%
 ????? %%%V: yearUndef
 & %%%ADD:
 00000 %%%V: year0
@@ -1378,6 +1381,7 @@ $info = {
 $msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1, debug => 0 ) // []; # debug => 0
 
 $msg_ref_s = [
+ '~~> l.119 Option =debug= set to 1',
           '--> l.121 Found %%%VAR:myTable_hash',
           '--> Table row = 0',
           '--> l.130>121 Insert %%%V[AR]:A= 00',
@@ -1510,6 +1514,7 @@ my @tex2 = map{"$_\n"} split /\n/, $tex2;
 $msg = replication( \@tex2, $info, ofile => $ofile_s, silent =>1, def =>1, debug => 0 ) // [];
 
 my $msg_warns = [
+  '~~> l.130 Option =debug= set to 1',
           '--> l.130 Found %%%VAR:myTable_hash',
           '--> Table row = 0',
           '--> l.130>121 Insert %%%V[AR]:A= 00',
@@ -1667,6 +1672,12 @@ $tex = q|
 ~0~
 %%%VAR: array
 %%%V: 1-3,2%
+%%%ADD: more
+%%%V: 100
+less %%%ADD:
+%%%V: -100
+terminal %%%ADD:
+%%%V: -4%
 %%%VAR: hash
 ~1~ %%%ADD:
 SPECIFY X ! %%%V: X ~X1~
@@ -1686,7 +1697,7 @@ lives_ok { &save_file( $file_s, \$tex ) } "Test #31.1: input template $file_s sa
 $info = { array=>[0,1,2,3], hash =>{ X=>'', Y=>"\x{003}", Z=>"\x{001}", }, };
 
 $LaTeX::Replicase::DEBUG = 1;
-$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1 ) // []; # , debug => 0
+$msg = replication( $file_s, $info, ofile => $ofile_s, def =>1 ) // []; # , debug => 0, silent =>1
 
 my $msg_ref_31_2 = [
           '--> Checking source data: \'t/tmp/template_simple.tex\'',
@@ -1695,17 +1706,21 @@ my $msg_ref_31_2 = [
           '--> Open \'t/tmp/ready_simple.tex\'',
           '--> l.3 Found %%%VAR:array',
           '--> Table row = 0',
-          '--> l.5>3 Insert %%%V[AR]:1= 1',
-          '--> l.5>3 Insert %%%V[AR]:2= 2',
-          '--> l.5>3 Insert %%%V[AR]:3= 3',
-          '--> l.5>3 Insert %%%V[AR]:2= 2',
+          '--> l.11>3 Insert %%%V[AR]:1= 1',
+          '--> l.11>3 Insert %%%V[AR]:2= 2',
+          '--> l.11>3 Insert %%%V[AR]:3= 3',
+          '--> l.11>3 Insert %%%V[AR]:2= 2',
+          '~~> l.11 NOT defined %%%V:100',
+          '-->	l.11>3 Insert head: terminal
+',
+          '--> l.11>4 Insert %%%V[AR]:-4= 0',
           '--> Table row = 1',
-          '--> l.5 Found %%%VAR:hash',
-          '-->	l.12>3 Insert head: ~1~
+          '--> l.11 Found %%%VAR:hash',
+          '-->	l.18>4 Insert head: ~1~
 ',
-          '-->	l.12>5 Insert tail: ~2~
+          '-->	l.18>6 Insert tail: ~2~
 ',
-          '-->	l.12>7 Insert head: ~3~
+          '-->	l.18>8 Insert head: ~3~
 '
 ];
 
@@ -1716,7 +1731,8 @@ lives_ok { $msg = read_file( $ofile_s ) } "Test #31.3: output $ofile_s read";
 $msg_ref_s = [
 '',
 '~0~',
-'1232~1~',
+'1232terminal',
+'0~1~',
 '',
 '~2~',
 '',
@@ -1783,6 +1799,10 @@ Unknown component %%%V: *secret_leader  ...continuation...
 ...
 %%%END:
 \end{tabular}
+%%%VAR: mix
+%%%V: @
+%%%ENDT:
+~~~
 |;
 
 my @tex32 = map{"$_\n"} split /\n/, $tex32;
@@ -1795,6 +1815,7 @@ $info = {
 		{leader =>77, slave =>'00', }, # row 3
 		{leader =>777, slave =>'000', secret_leader =>7777 }, # row 4
 	],
+	mix => { endInput => "\x{03}", '@' => ['endInput'], },
 };
 
 $msg = replication( \@tex32, $info, ofile => $ofile_s, silent =>1, def=>1, esc=>'~', debug => 0 ) // [];
@@ -1830,10 +1851,17 @@ $msg_ref_s = [
           '\\mbox{Unknown component ...continuation...',
           '}',
           '\\\\',
-          '\\end{tabular}'
+          '\\end{tabular}',
+          '\\endinput'
 ];
 
 is_deeply( $msg, $msg_ref_s, "Test #32.3: example of property (*)");
+
+###DEL###
+# open F, ">test.log";
+# print F Dumper($msg);
+# close F;
+# exit;
 
 unlink $ofile_s;
 
@@ -1843,20 +1871,30 @@ $tex = q|
 %%%V: ///myVar/phantom
 %%%V: keyA
 %%%V: keyB
+%%%VAR: /HH//subH
+~ %%%ADD:%
+   SPECIFY VALUE 'sA'! %%%V: sA
+%%%VAR: ArArHs
+%%%V: 0  aah
+%%%VAR: ArArHs
+%%%V: AAh
+%%%VAR: ArArArMx
+%%%V: 0
+%%%V: 1
+%%%END:
+%%%V: =debug= 0
 %%%V: myHash
+%%%V: keyA
 \begin{tabbing}
 %%%VAR: //myHash//
    SPECIFY VALUE 'A'! %%%V:A%
  \= %%%ADD:
    SPECIFY VALUE 'B'! %%%V: B%
- \= %%%ADD:
-   SPECIFY VALUE 'C'! %%%V: C%
- \= %%%ADD:
-   SPECIFY VALUE 'D'! %%%V:D%
- \= %%%ADD:
-   SPECIFY VALUE 'E'! %%%V: E
-%%%ENDT:
+%%%END:
 \end{tabbing}
+%%%VAR: ArArArEND
+%%%V: -1
+%%%ENDT:
 |;
 
 lives_ok { &save_file( $file_s, \$tex ) } "Test #34.1: $file_s save";
@@ -1865,16 +1903,47 @@ $info = {
 		myVar => 1234567890,
 		keyA => 1,
 		keyB => 2,
-		myHash => {
-			A=>11, B=>12, C=>13, D=>14, E=>15,
-		},
+		myHash => { A=>11, B=>12, C=>13, },
+		HH => { subH => { sA =>33, }, },
+		ArArHs => [ [ { AAh=>777 } ] ],
+		ArArArMx => [ [ [9999, { AAAh=>7777 }] ] ],
+		ArArArEND => [ [0, undef,undef,undef, "\x{04}"] ],
 	};
 
-$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1, debug => 0 ) // [];
+$msg = replication( $file_s, $info, ofile => $ofile_s, silent =>1, def =>1, debug => 2 ) // [];
 
 is_deeply( $msg, [
-	'~~> l.2 WARNING#9: \'myVar\' is not at the end of %%%V:myVar/phantom',
-	'~~> l.5 WARNING#5: (ARRAY|HASH) w/o \'/\' is wrong type of \'myHash\' in %%%V:myHash',
+          '--> Checking source data: \'t/tmp/template_simple.tex\'',
+          '--> Using \'t/tmp/ready_simple.tex\' file as output',
+          '--> Open \'t/tmp/template_simple.tex\'',
+          '--> Open \'t/tmp/ready_simple.tex\'',
+          '--> l.2>2 Insert %%%V[AR]:myVar/phantom= 1234567890',
+          '~~> l.2 WARNING#9: \'myVar\' is not at the end of %%%V:myVar/phantom',
+          '--> l.3>3 Insert %%%V[AR]:keyA= 1',
+          '--> l.4>4 Insert %%%V[AR]:keyB= 2',
+          '--> l.5 Found %%%VAR:/HH//subH',
+          '-->	l.8>5 Insert head: ~',
+          '--> l.8>6 Insert %%%V[AR]:sA= 33',
+          '--> l.8 Found %%%VAR:ArArHs',
+          '--> Table row = 0',
+          '~~> l.10 WARNING#10: ...ARRAY.ARRAY[0] is NOT a SCALAR in %%%V:0 ...skipped',
+          '--> l.10 Found %%%VAR:ArArHs',
+          '~~> l.11 WARNING#8: ARRAY index is not numeric in %%%V:AAh',
+          '--> Table row = 0',
+          '~~> l.12 NOT defined %%%V[AR]:',
+          '--> l.12 Found %%%VAR:ArArArMx',
+          '--> Table row = 0',
+          '--> l.15>7 Insert %%%V[AR]:0= 9999',
+          '~~> l.15 NOT defined %%%V:1',
+          '~~> l.17 WARNING#5: (ARRAY|HASH) w/o \'/\' is wrong type of \'myHash\' in %%%V:myHash',
+          '--> l.18>9 Insert %%%V[AR]:keyA= 1',
+          '--> l.20 Found %%%VAR://myHash//',
+          '--> l.24>11 Insert %%%V[AR]:A= 11',
+          '-->	l.24>11 Insert head:  \\=
+',
+          '--> l.24>12 Insert %%%V[AR]:B= 12',
+          '--> l.26 Found %%%VAR:ArArArEND',
+          '--> Table row = 0',
 ],
 "Test #34.2: '$file_s'");
 
@@ -1885,19 +1954,24 @@ $msg_ref_s = [
 1234567890,
 1,
 2,
-	'%%%V: myHash',
-	'\\begin{tabbing}',
-	'\\end{tabbing}'
+          '~33',
+          '9999',
+          '%%%V: myHash',
+          '1',
+          '\\begin{tabbing}',
+          '11 \\=',
+          '12\\end{tabbing}',
+          '\\end{document}'
 ];
 
 is_deeply( $msg, $msg_ref_s, "Test #34.4: ");
-
-unlink $ofile_s;
 
 ###DEL###
 # open F, ">test.log";
 # print F Dumper($msg);
 # close F;
 # exit;
+
+unlink $ofile_s;
 
 rmtree('t/tmp');
