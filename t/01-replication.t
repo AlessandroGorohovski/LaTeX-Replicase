@@ -95,7 +95,7 @@ else {
 	diag "Eval error: $@" if $@;
 }
 
-# note "Real OS after tests: $^O";
+# note 
 diag "Real OS after tests: $^O";
 
 unlink $ofile;
@@ -1656,12 +1656,6 @@ $msg_ref_s = [
 ];
 
 is_deeply( $msg, $msg_ref_s, "Test #30.7: main example filling ARRAY of USAGE");
-
-###DEL###
-# open F, ">test.log";
-# print F Dumper($msg);
-# close F;
-# exit;
 
 unlink $ofile_s;
 

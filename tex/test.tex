@@ -1,0 +1,27 @@
+\documentclass[10pt]{article}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{paratype}
+\usepackage[english,russian]{babel}
+\usepackage{longtable}
+
+\begin{document}
+Нормальный пробел (fontdimen 2): \the\fontdimen 2 \font\\
+Растяжение пробела (fontdimen 3): \the\fontdimen 3 \font\\
+Сжатие пробела (fontdimen 4): \the\fontdimen 4 \font\\
+
+\begin{tabular}{|p{30mm}|p{30mm}|}
+\selectlanguage{english}{I was going to do something today but I haven't finished doing nothing from yesterday.}
+\selectlanguage{russian}{Я собирался кое-что сделать сегодня, но еще не закончил ничегонеделание со вчерашнего дня}
+&
+I was going to do something today but I haven't fin\-ished doing noth\-ing from yes\-ter\-day. 
+Я собирался кое-что сделать сегодня, но еще не закончил ни\-че\-го\-не\-де\-ла\-ние со вчерашнего дня
+\end{tabular}
+
+\begin{longtable}{|p{20mm}|}
+\selectlanguage{english}{I was going to do something today but I haven't finished doing nothing from yesterday.}
+\selectlanguage{russian}{Я собирался кое-что сделать сегодня, но еще не закончил ничегонеделание со вчерашнего дня}
+\end{longtable}
+
+\end{document}
+

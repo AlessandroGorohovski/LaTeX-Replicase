@@ -1,5 +1,5 @@
 # Before 'make install' is performed this script should be runnable with
-# 'make test'. After 'make install' it should work as 'perl 01-replication.t'
+# 'make test'. After 'make install' it should work as 'perl 03-REase.t'
 
 #########################
 
@@ -16,7 +16,7 @@ use Test::More tests => 33;
 use Test::More::UTF8;
 
 BEGIN { use_ok('LaTeX::Replicase') }; ### Test 1
-use LaTeX::Replicase qw(:all);
+use LaTeX::Replicase qw(REase); # :all
 
 ##### Test REase() #####
 
@@ -37,8 +37,8 @@ my $i = 0;
 for( @arr ) {
 	my( $v, $r ) = @$_;
 	$_ = $v;
-	my $mflag = REase($_); # by default, tail = 3
-	is_deeply( [$_, $mflag], [ $r, $r_mflag->[$i]], 'Test #'.$t. ": '$v' to '$r' with tail = 3");
+	my $mflag = REase($_); # by default, tile = 3
+	is_deeply( [$_, $mflag], [ $r, $r_mflag->[$i]], 'Test #'.$t. ": '$v' to '$r' with tile = 3");
 	++$t;
 	++$i;
 }
@@ -53,7 +53,7 @@ for my $v ( undef, 0, '') { # 9,10,11
 ###Test 12-20
 my $v = '~$&,%,$,#,_,{,},^,\2qw\ea-sdf-124-590\\\\\\>>>>---1';
 my $r = [
-	#12: tail = 2
+	#12: tile = 2
 '{\hskip0pt plus .02em}~$&'.
 '{\hskip0pt plus .02em},'.
 '{\hskip0pt plus .02em}%,$'.
@@ -76,7 +76,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#13: tail = 3
+	#13: tile = 3
 '{\hskip0pt plus .02em}~$&,'.
 '{\hskip0pt plus .02em}%'.
 '{\hskip0pt plus .02em},$,#'.
@@ -100,7 +100,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#14: tail = 4
+	#14: tile = 4
 '{\hskip0pt plus .02em}~$&,%'.
 '{\hskip0pt plus .02em},'.
 '{\hskip0pt plus .02em}$,#,_'.
@@ -122,7 +122,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#15: tail = 5
+	#15: tile = 5
 '{\hskip0pt plus .02em}~$&,%,'.
 '{\hskip0pt plus .02em}$'.
 '{\hskip0pt plus .02em},#,_,{'.
@@ -144,7 +144,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#16: tail = 6
+	#16: tile = 6
 '{\hskip0pt plus .02em}~$&,%,$'.
 '{\hskip0pt plus .02em},'.
 '{\hskip0pt plus .02em}#,_,{,}'.
@@ -164,7 +164,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#17: tail = 7
+	#17: tile = 7
 '{\hskip0pt plus .02em}~$&,%,$,'.
 '{\hskip0pt plus .02em}#'.
 '{\hskip0pt plus .02em},_,{,},^'.
@@ -184,7 +184,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#18: tail = 8
+	#18: tile = 8
 '{\hskip0pt plus .02em}~$&,%,$,#'.
 '{\hskip0pt plus .02em},'.
 '{\hskip0pt plus .02em}_,{,},^'.
@@ -204,7 +204,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#19: tail = 9
+	#19: tile = 9
 '{\hskip0pt plus .02em}~$&,%,$,#'.
 '{\hskip0pt plus .02em},'.
 '{\hskip0pt plus .02em}_,{,},^'.
@@ -224,7 +224,7 @@ my $r = [
 '{\hskip0pt plus .02em}---'.
 '{\hskip0pt plus .02em}1',
 
-	#20: tail = 'X' -- INVALID value
+	#20: tile = 'X' -- INVALID value
 '{\hskip0pt plus .02em}~$&,'.
 '{\hskip0pt plus .02em}%'.
 '{\hskip0pt plus .02em},$,#'.
@@ -253,7 +253,7 @@ $i = 0;
 for my $tile (2..9, 'X'){ #12 -- #20
 	$_ = $v;
 	my $mflag = REase( $_, { tile => $tile } );
-	is_deeply( [$_, $mflag], [$r->[$i], 0b0111 ], 'Test #'.$t. ": '$v' to '$r->[$i]' with tail = $tile");
+	is_deeply( [$_, $mflag], [$r->[$i], 0b0111 ], 'Test #'.$t. ": '$v' to '$r->[$i]' with tile = $tile");
 	++$t;
 	++$i
 }
@@ -380,5 +380,3 @@ $r = $v = $_= '{\hskip0pt plus .02em}1{\hskip0pt plus .02em}---{\hskip0pt plus .
 $mflag = REase( $_ );
 is_deeply( [$_, $mflag], [$r, 0], 'Test #'.$t. ": '$v' to '$r'");
 ++$t;
-
-
