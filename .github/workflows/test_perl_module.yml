@@ -48,13 +48,15 @@ jobs:
         with: 
             perl-version: ${{ matrix.perl }}
             distribution: ${{ ( startsWith( matrix.runner, 'windows-' ) && 'strawberry' ) || 'default' }}
-
       # Выполняет набор команд с использованием оболочки runners.
+      - name: perl -V
+        run: perl -V
+      - name: Ensure we have a working toolchain
+        run: cpanm ExtUtils::Manifest App::cpanminus File::ShareDir::Install
       - name: Install dependencies
         run: |
             cpanm --notest Module::Install
             cpanm --installdeps --notest .
-
       - name: Show content of log files on Linux
         if: ${{ failure() && startsWith( matrix.runner, 'ubuntu-' )  }}
         run: cat /home/runner/.cpanm/work/*/build.log
