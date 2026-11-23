@@ -39,7 +39,8 @@ jobs:
     # Шаги представляют собой последовательность задач, которые будут выполнены в рамках работы.
     steps:
       # Извлекает ваш репозиторий в $GITHUB_WORKSPACE, чтобы ваше задание могло получить к нему доступ
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       # Выполняет одну команду с использованием оболочки runners
       # Инсталляция версий Perl
@@ -52,11 +53,16 @@ jobs:
       - name: perl -V
         run: perl -V
       - name: Ensure we have a working toolchain
-        run: cpanm ExtUtils::Manifest App::cpanminus File::ShareDir::Install
+        run: cpanm ExtUtils::Manifest App::cpanminus File::ShareDir File::ShareDir::Install
       - name: Install dependencies
         run: |
             cpanm --notest Module::Install
-            cpanm --installdeps --notest .
+            cpanm --notest --installdeps .
+      - name: Build and install distribution
+        run: |
+          perl Makefile.PL
+          make
+          make install
       - name: Show content of log files on Linux
         if: ${{ failure() && startsWith( matrix.runner, 'ubuntu-' )  }}
         run: cat /home/runner/.cpanm/work/*/build.log
@@ -69,16 +75,9 @@ jobs:
         if: ${{ failure() && startsWith( matrix.runner, 'windows-' )  }}
         run: cat C:/Users/RUNNER~1/.cpanm/work/*/build.log
 
-      - name: Upload compiled files
-        uses: actions/upload-artifact@v4
-        with:
-          name: compiled-perl-module
-          # Замените lib/auto/... на путь с blib/
-          path: blib/lib/auto/LaTeX/Replicase
-
       - name: Regular Tests
         run: |
-            prove -lv t
+            prove -lr t/
 #            perl Makefile.PL
 #            make
 #            make test
