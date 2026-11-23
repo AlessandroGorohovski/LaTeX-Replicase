@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 use File::ShareDir::Install;
 
 # install_share 'share';
-install_share module => 'LaTeX::Replicase' => 'share';
+install_share  module => 'LaTeX::Replicase' => 'share';
 
 WriteMakefile(
     NAME              => 'LaTeX::Replicase',
@@ -16,9 +16,10 @@ WriteMakefile(
     LICENSE           => 'perl_5', #Value must be from legacy list of licenses here http://search.cpan.org/perldoc?Module%3A%3ABuild%3A%3AAPI
     CONFIGURE_REQUIRES => {
       'ExtUtils::MakeMaker'     => 0,
-      'File::ShareDir::Install' => '0.06',
+      'File::ShareDir::Install' => '0.14',
     },
     PREREQ_PM         => {
+      'File::ShareDir::Install' => '0.14',
       'File::Basename'     => '2.00',
       'File::Path'         => '2.18',
       'File::Compare'      => '1.00',
@@ -26,12 +27,10 @@ WriteMakefile(
       'File::ShareDir'     => '1.10',
       'Storable'           => '2.00',
       'Data::Dumper'       => '2.183',
-      'File::ShareDir::Install' => '0.06',
       'File::Remove'       => '1.42',
       'Module::Install'    => '1.21',
       'Module::Build'      => '0.29',
       'Module::ScanDeps'   => '1.09',
-      'Software::License'  => '0.1',
     },
     TEST_REQUIRES      => { # for tests only
       'Test::More'          => '0.96',
