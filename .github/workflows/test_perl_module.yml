@@ -79,7 +79,7 @@ jobs:
 
       - name: Regular Tests
         run: |
-            prove -lr t/
+            prove -lv t/
 #            perl Makefile.PL
 #            make
 #            make test
