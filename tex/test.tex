@@ -1,27 +1,76 @@
 \documentclass[10pt]{article}
 \usepackage[T2A]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{paratype}
+% \usepackage{paratype}
+\usepackage{PTSansCaption}% PT Sans Caption font
 \usepackage[english,russian]{babel}
 \usepackage{longtable}
 
+\renewcommand*\familydefault{\sfdefault}
+
+\newlength{\mywidth}
+\def\symbolWidth#1{\settowidth{\mywidth}{#1}'#1':~\the\mywidth}
+
+\makeatletter
+\newcommand{\printfontinfo}{%
+  \texttt{\f@encoding/\f@family/\f@series/\f@shape/\f@size pt}%
+}
+\makeatother
+
 \begin{document}
+
 Нормальный пробел (fontdimen 2): \the\fontdimen 2 \font\\
 Растяжение пробела (fontdimen 3): \the\fontdimen 3 \font\\
 Сжатие пробела (fontdimen 4): \the\fontdimen 4 \font\\
+
+Параметры шрифта: \printfontinfo
+
+{\bfseries\itshape Жирный курсив: \printfontinfo}
+
+Внешнее имя шрифта:
+Текущий шрифт: \texttt{\fontname\font}
+
+{\itshape Курсив: \texttt{\fontname\font}}
+
+Внутреннее имя шрифта в TeX:
+\expandafter\texttt\expandafter{\expandafter\string\the\font}
+
+\makeatletter
+Размер шрифта normalsize: \f@size pt, интерлиньяж: \f@baselineskip
+\makeatother
+
+\tiny
+
+\makeatletter
+Размер шрифта tiny: \f@size pt, интерлиньяж: \f@baselineskip
+\makeatother
+
+\LARGE
+
+\makeatletter
+Размер шрифта LARGE: \f@size pt, интерлиньяж: \f@baselineskip
+\makeatother
+
+\vspace{5mm}
 
 \begin{tabular}{|p{30mm}|p{30mm}|}
 \selectlanguage{english}{I was going to do something today but I haven't finished doing nothing from yesterday.}
 \selectlanguage{russian}{Я собирался кое-что сделать сегодня, но еще не закончил ничегонеделание со вчерашнего дня}
 &
-I was going to do something today but I haven't fin\-ished doing noth\-ing from yes\-ter\-day. 
-Я собирался кое-что сделать сегодня, но еще не закончил ни\-че\-го\-не\-де\-ла\-ние со вчерашнего дня
+% I was going to do something today but I haven't finished doing noth\-ing from yesterday. 
+% Я собирался ко\hskip0pt plus.02em\/е-что сделать сегодня, но еще не закончил ничегонеделание со вчерашнего дня
+I was go\-ing to do some\-thing to\-day but I haven't fin\-ished do\-ing nothing fr\-om yes\-terday.
+Я со\-би\-рал\-ся ко\hskip0pt plus.02em\/е-что сде\-лать се\-го\-дня, но еще не за\-кон\-чил ни\-че\-го\-не\-де\-ла\-ние со вче\-раш\-него дня
+\looseness=-3
 \end{tabular}
 
-\begin{longtable}{|p{20mm}|}
-\selectlanguage{english}{I was going to do something today but I haven't finished doing nothing from yesterday.}
-\selectlanguage{russian}{Я собирался кое-что сделать сегодня, но еще не закончил ничегонеделание со вчерашнего дня}
-\end{longtable}
+\begin{tabular}[!t]{c|c|c|c|c|c|c|c|c|c}
+\hline
+\symbolWidth{1} & \symbolWidth{2} & \symbolWidth{3} & \symbolWidth{4} & \symbolWidth{5} &
+\symbolWidth{6} & \symbolWidth{7} & \symbolWidth{8} & \symbolWidth{9} & \symbolWidth{0}
+\\
+\hline
+\end{tabular}
 
 \end{document}
 
