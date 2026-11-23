@@ -26,6 +26,12 @@ WriteMakefile(
       'File::ShareDir'     => '1.10',
       'Storable'           => '2.00',
       'Data::Dumper'       => '2.183',
+      'File::ShareDir::Install' => '0.06',
+      'File::Remove'       => '1.42',
+      'Module::Install'    => '1.21',
+      'Module::Build'      => '0.29',
+      'Module::ScanDeps'   => '1.09',
+      'Software::License'  => '0.1',
     },
     TEST_REQUIRES      => { # for tests only
       'Test::More'          => '0.96',
