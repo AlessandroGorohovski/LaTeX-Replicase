@@ -69,6 +69,13 @@ jobs:
         if: ${{ failure() && startsWith( matrix.runner, 'windows-' )  }}
         run: cat C:/Users/RUNNER~1/.cpanm/work/*/build.log
 
+      - name: Upload compiled files
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-perl-module
+          # Замените lib/auto/... на путь с blib/
+          path: blib/lib/auto/LaTeX/Replicase
+
       - name: Regular Tests
         run: |
             prove -lv t
