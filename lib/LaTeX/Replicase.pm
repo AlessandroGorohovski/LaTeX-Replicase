@@ -32,7 +32,7 @@ our %EXPORT_TAGS = ('all' => [ qw(
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw( );
 
-our $VERSION = '0.812';
+our $VERSION = '0.815';
 our $DEBUG = 0;
 
 our $qs = qr/^|_|\b/o;
@@ -849,9 +849,6 @@ push @{$op->{logs}}, "~~> l.$. WARNING#8: ARRAY index is not numeric in %%%V:". 
 
 			return 0;
 		}
-#		else {
-#			return 0;
-#		}
 
 	}
 	elsif( $$z =~/%%%+END(?<t>[TZ]?):/) { # end of template area
@@ -896,7 +893,6 @@ push @{$op->{logs}}, "~~> l.$. WARNING#8: ARRAY index is not numeric in %%%V:". 
 
 			my $vtype = ref $vd;
 
-#			if( $sk =~/^\d+$/ and $vtype eq 'ARRAY' and defined( $vd->[$sk] ))
 			if( $sk =~/^\-*(\d+)$/
 				 and $vtype eq 'ARRAY'
 				 and ( $1 < @{$vd} or ( $sk+0 < 0 and $1 == @{$vd} ))
@@ -1529,6 +1525,66 @@ push @{$op->{logs}}, "~~> l.$. NOT HASH.SCALAR or NOT defined %%%V:". $ki if $op
 }
 
 
+sub _code2dec {
+	my @arr;
+	my $f16 = 0;
+	for my $h ( map{ hex } split /\s+/, $_[0] ) { # $codes
+
+		if( $h >= 0xD800 and $h <= 0xDBFF ) {# HIGH utf16 code
+			push @arr, 0x10000 + (($h - 0xD800) << 10);
+			$f16 = 1;
+		}
+		elsif( $h >= 0xDC00 and $h <= 0xDFFF ) { # LOW utf16 code
+			$h -= 0xDC00;
+			if( $f16 ) {
+				$arr[-1] = $arr[-1] + $h;
+				$f16 = 0;
+			}
+			else {
+				push @arr, 0x10000 + $h;
+			}
+		}
+		else {
+			push @arr, $h;
+			$f16 = 0;
+		}
+	}
+
+	return join ' ', @arr; # dec(s)
+}
+
+
+sub _code2sym {
+	my @arr;
+	my $f16 = 0;
+	for my $h ( map{ hex } split /\s+/, $_[0] ) { # $codes
+
+		if( $h >= 0xD800 and $h <= 0xDBFF ) {# HIGH utf16 code
+			push @arr, 0x10000 + (($h - 0xD800) << 10);
+			$f16 = 1;
+		}
+		elsif( $h >= 0xDC00 and $h <= 0xDFFF ) { # LOW utf16 code
+			$h -= 0xDC00;
+			if( $f16 ) {
+				$arr[-1] = chr( $arr[-1] + $h );
+				$f16 = 0;
+			}
+			else {
+				push @arr, chr(0x10000 + $h);
+			}
+		}
+		else {
+			$arr[-1] = chr( $arr[-1] ) if $f16;
+			push @arr, chr($h);
+			$f16 = 0;
+		}
+	}
+	$arr[-1] = chr( $arr[-1] ) if $f16;
+
+	return join '', @arr; # mate
+}
+
+
 sub _get_mate {
 	my( $glyph, $agl, $op ) = @_;
 
@@ -1542,13 +1598,13 @@ sub _get_mate {
 		my $code = $1;
 
 		if( $op->{mate} =~/^sym/) {
-			$mate = chr(hex( $code ));
+			$mate = &_code2sym( $code );
 		}
 		elsif( $op->{mate} =~/^hex/) {
 			$mate = $code;
 		}
 		else { # dec
-			$mate = hex $code;
+			$mate = &_code2dec( $code );
 		}
 	}
 	else {
@@ -1580,11 +1636,13 @@ sub AGLkit {
 
 	if( $op->{mate} ) {
 		if( $op->{mate} =~/^sym/) {
+
 			for my $v ( values %$agl ) {
 				$v = join '', map{ chr } split /\s+/, $v;
 			}
 		}
 		elsif( $op->{mate} =~/^hex/) {
+
 			for my $v ( values %$agl ) {
 				$v = join ' ', map{ sprintf("%04X", $_) } split /\s+/, $v;
 			}
@@ -1612,7 +1670,7 @@ sub AGLkit {
 			my $mate;
 			if( $op->{mate} ) {
 				if( $op->{mate} =~/^sym/) {
-					$mate = join('', map{ chr hex } split /\s+/, $codes );
+					$mate = &_code2sym( $codes );
 				}
 				elsif( $op->{mate} =~/^hex/) {
 					($mate = $codes) =~s/\s+/ /g;
@@ -1620,7 +1678,7 @@ sub AGLkit {
 				}
 			}
 
-			$agl->{ $glyph } = $mate // join(' ', map{ hex } split /\s+/, $codes );
+			$agl->{ $glyph } = $mate // &_code2dec( $codes ); # By default, decimal Unicode number
 		}
 
 		close $AGL;
@@ -4080,6 +4138,7 @@ Examples #1:
   my $op = {
       cell_width => $cell_width, # width of cell/box, (pt)
       font_metrics => font_metrics('PTC55F.afm', { glyphlist => 'glyphlist.txt', noBbox =>1 }),
+      # documentclass => 'classic', # i.e. 'article' or 'report' or 'book' or 'letter'
       base_font_size => 10, # depending on the document's base font size (pt), see \documentclass[...pt]
       # font_size => 'normalsize', # TeX-font size of text in cell/box
       space => 2.43, # Regular space between words (pt), see fontdimen 2
