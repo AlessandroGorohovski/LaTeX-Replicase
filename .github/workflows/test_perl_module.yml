@@ -23,15 +23,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu, macos, windows]
-        perl: ['latest', '5.42', '5.40', '5.38', '5.10']
+        runner: [ubuntu-latest, macos-latest]
+        perl: ['latest', '5.42', '5.40', '5.38', '5.28', '5.18', '5.10']
 #        perl: ['latest', '5.42', '5.40', '5.38', '5.36', '5.34', '5.32', '5.30', '5.28', '5.26', '5.24', '5.22', '5.20', '5.18', '5.16', '5.14', '5.12', '5.10']
 
-        # Описание правила исключения
-        exclude:
-          - runner: windows
-            perl: '5.10'
-    
     # Тип запускателя, на котором будет выполняться задание
     runs-on: ${{matrix.runner}}
     name: Perl ${{matrix.perl}} on OS ${{matrix.runner}}
@@ -49,7 +44,7 @@ jobs:
         uses: shogo82148/actions-setup-perl@v1
         with: 
             perl-version: ${{ matrix.perl }}
-            distribution: ${{ ( startsWith( matrix.runner, 'windows' ) && 'strawberry' ) || 'default' }}
+            distribution: ${{ ( startsWith( matrix.runner, 'windows-' ) && 'strawberry' ) || 'default' }}
 
       # Выполняет набор команд с использованием оболочки runners.
       - name: perl -V
@@ -66,15 +61,15 @@ jobs:
           make
           make install
       - name: Show content of log files on Linux
-        if: ${{ failure() && startsWith( matrix.runner, 'ubuntu' )  }}
+        if: ${{ failure() && startsWith( matrix.runner, 'ubuntu-' )  }}
         run: cat /home/runner/.cpanm/work/*/build.log
 
       - name: Show content of log files on Mac
-        if: ${{ failure() && startsWith( matrix.runner, 'macos' )  }}
+        if: ${{ failure() && startsWith( matrix.runner, 'macos-' )  }}
         run: cat /Users/runner/.cpanm/work/*/build.log
 
       - name: Show content of log files on Windows
-        if: ${{ failure() && startsWith( matrix.runner, 'windows' )  }}
+        if: ${{ failure() && startsWith( matrix.runner, 'windows-' )  }}
         run: cat C:/Users/RUNNER~1/.cpanm/work/*/build.log
 
       - name: Regular Tests
